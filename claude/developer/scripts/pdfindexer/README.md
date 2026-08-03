@@ -31,7 +31,7 @@ This creates `search-index/<keyword>.txt` files with page numbers and matched sn
 
 ### Step 2: Create a search_indexes.py for Your Document
 
-Each indexed location gets its own `search_indexes.py`. See the reference implementation at `claude/developer/docs/targets/stm32h7/search_indexes.py` and the pattern guide at `claude/developer/workspace/js-minspace/stm32h7-index-changes.md`.
+Each indexed location gets its own `search_indexes.py`. See the reference implementation at `claude/developer/docs/targets/stm32h7/search_indexes.py`.
 
 Minimal template:
 
@@ -313,7 +313,6 @@ project/
 - `../../docs/gps/m9-interface-description/search_indexes.py` — u-blox M9 (1 index, 128 keywords)
 
 **Pattern guide for adding new indexes:**
-- `claude/developer/workspace/js-minspace/stm32h7-index-changes.md` — full checklist and template
 
 **Config examples (for building indexes):**
 - `example-crypto.yaml`, `example-stm32h7.yaml`, `m9-gps.yaml`

@@ -166,9 +166,13 @@ claude/developer/scripts/
 **If:** Email template
 **→** `claude/manager/templates/task-assignment.md`
 
-### Temporary Analysis
+### Project work files
 
-**Always:** `claude/developer/workspace/current-analysis/`
+**Always:** `claude/projects/active/<project-name>/` — see `claude/projects/README.md` for the subdirectory layout and the mandatory `MANIFEST.md`.
+
+### Throwaway scratch (no owning project)
+
+`claude/developer/workspace/` — gitignored, and reported as an orphan by `project_ops.py audit` if it outlives the task.
 
 ---
 

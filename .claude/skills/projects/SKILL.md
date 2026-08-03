@@ -87,11 +87,31 @@ Shows:
 
 ## Project File Locations
 
-- **Active projects index:** `claude/projects/INDEX.md` (13KB - active only)
-- **Completed projects archive:** `claude/projects/COMPLETED_PROJECTS.md` (36KB - full archive)
-- **Active project directories:** `claude/projects/{name}/`
-- **Archived project directories:** `claude/archived_projects/{name}/`
-- **Project manager tool:** `claude/projects/project_manager.py`
+- **Active projects index:** `claude/projects/INDEX.md` (active/blocked/backburner only)
+- **Completed projects archive:** `claude/projects/completed/INDEX.md`
+- **Project directories:** `claude/projects/{active,blocked,backburner,completed}/{name}/`
+- **Project manager tool:** `claude/projects/project_manager.py` (queries INDEX.md)
+- **Lifecycle tool:** `claude/projects/project_ops.py` (moves dirs + updates indexes atomically)
+
+## Project Directory Layout
+
+Everything belonging to a project lives in its directory. Subdirectories are created only when the project has that kind of content.
+
+```
+claude/projects/<status>/<project-name>/
+├── MANIFEST.md      # index of EVERYTHING, in-repo and external
+├── summary.md       # status, scope, current state
+├── todo.md
+├── notes/           # devlogs, design decisions, research
+├── pr/              # PR bodies, split specs
+├── tests/           # project test scripts
+├── scripts/         # project-specific tooling
+└── artifacts/       # diffs, binaries, captured data
+```
+
+**`MANIFEST.md` is mandatory** and is the project's index of record. It lists every file in the directory plus the things a directory cannot hold: git branches, upstream PRs, mail paths, memory slugs, and external references. `project_ops.py audit` fails if a file is missing from its manifest, or if a working directory exists with no owning project.
+
+Do **not** scatter project material into `claude/developer/workspace/` — that is scratch only, and anything left there is reported as an orphan.
 
 ## Status Definitions
 
@@ -168,24 +188,22 @@ Completed: 38
 
 ## For Managers Only
 
-### Updating INDEX.md
+### Completing a project
 
-After completing a project:
+Use `project_ops.py` — it moves the directory, removes the INDEX.md entry, adds the completed/INDEX.md entry and updates counts, atomically:
 
-1. **Move to COMPLETED_PROJECTS.md:**
-   ```bash
-   cd claude/projects
-   python3 compact_index.py
-   ```
-   This automatically separates active and completed projects.
+```bash
+python3 claude/projects/project_ops.py complete <project-name>
+```
 
-2. **Verify with project manager:**
-   ```bash
-   python3 project_manager.py stats
-   python3 project_manager.py list TODO
-   ```
+Then verify:
 
-3. **Update the "Last Updated" date** in INDEX.md header
+```bash
+python3 claude/projects/project_ops.py audit
+python3 claude/projects/project_manager.py stats
+```
+
+Update the **Last Updated** date in the INDEX.md header.
 
 ### Manual Index Queries (Fallback)
 

@@ -80,7 +80,7 @@ Prompt: "Review changes in [files] - [brief description]"
 
 **If you drafted user documentation before coding (see CRITICAL-BEFORE-CODE.md step 4):**
 
-1. **Update the draft** in `claude/developer/workspace/[task-name]/draft-user-docs.md`
+1. **Update the draft** in `claude/projects/active/[project-name]/notes/draft-user-docs.md`
    - Verify it matches the actual implementation
    - Update examples and configuration steps if they changed
    - Ensure CLI/settings changes are accurate

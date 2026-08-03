@@ -19,8 +19,14 @@ projects/
 │
 ├── active/                  # Projects being worked on
 │   └── <project-name>/
+│       ├── MANIFEST.md      # Index of EVERYTHING (mandatory)
 │       ├── summary.md       # Full details
-│       └── todo.md          # Task tracking
+│       ├── todo.md          # Task tracking
+│       ├── notes/           # devlogs, design decisions, research
+│       ├── pr/              # PR bodies, specs
+│       ├── tests/           # project test scripts
+│       ├── scripts/         # project-specific tooling
+│       └── artifacts/       # diffs, binaries, captured data
 │
 ├── blocked/                 # Blocked on external dependency
 │   └── <project-name>/
@@ -130,7 +136,23 @@ Each entry should be 10-15 lines max:
 
 - Project details → `<project-name>/summary.md`
 - Task tracking → `<project-name>/todo.md`
+- **Everything the project owns → `<project-name>/MANIFEST.md`**
 - INDEX.md → Navigation and status only
+
+### MANIFEST.md is mandatory
+
+Every project directory contains a `MANIFEST.md` indexing **everything** belonging to that project:
+
+- every file in the directory, with its purpose
+- git branches, by repo, with tip commits and merged/outstanding state
+- upstream PR numbers and status
+- mail paths in the role mailboxes (`claude/*/email/` is gitignored — those files are local-only)
+- memory slugs under `~/.claude/projects/<slug>/memory/`, which the harness loads and which cannot live in the repo
+- external references — anything outside the repo the project depends on
+
+`project_ops.py audit` enforces it: a file not listed in its manifest is an error, and a directory under `claude/developer/workspace/` with no owning project is reported as an orphan. That pair is what keeps material from going missing.
+
+**Project material does not belong in `claude/developer/workspace/`** — that is scratch only.
 
 ---
 

@@ -57,7 +57,7 @@
   },
   "permissions": {
     "allow": [
-      "Read(~/Documents/planes/inavflight/**)",
+      "Read(/media/anon/WD2TB/DataVault/TechProjects/Software/GitRepos/inav-claude/**)",
       "Read(./**)",
       "Read(.claude/skills/**)",
       "Read(../inav/**)",
@@ -131,7 +131,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/user/Documents/planes/inavflight/.claude/hooks/session-start.sh"
+            "command": "/media/anon/WD2TB/DataVault/TechProjects/Software/GitRepos/inav-claude/.claude/hooks/session-start.sh"
           }
         ]
       },
@@ -139,7 +139,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/user/Documents/planes/inavflight/.claude/hooks/check-framework-update.sh"
+            "command": "/media/anon/WD2TB/DataVault/TechProjects/Software/GitRepos/inav-claude/.claude/hooks/check-framework-update.sh"
           }
         ]
       }
@@ -150,7 +150,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/user/Documents/planes/inavflight/.claude/hooks/pre_tool_use_hook.py"
+            "command": "/media/anon/WD2TB/DataVault/TechProjects/Software/GitRepos/inav-claude/.claude/hooks/pre_tool_use_hook.py"
           }
         ]
       }
@@ -161,7 +161,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/user/Documents/planes/inavflight/.claude/hooks/permission_request_hook.py"
+            "command": "/media/anon/WD2TB/DataVault/TechProjects/Software/GitRepos/inav-claude/.claude/hooks/permission_request_hook.py"
           }
         ]
       }
@@ -171,7 +171,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/user/Documents/planes/inavflight/.claude/hooks/stop-hook.sh"
+            "command": "/media/anon/WD2TB/DataVault/TechProjects/Software/GitRepos/inav-claude/.claude/hooks/stop-hook.sh"
           }
         ]
       }

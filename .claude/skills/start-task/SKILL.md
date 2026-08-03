@@ -121,15 +121,26 @@ table (including the current temporary `inav/` override) and the manual fallback
 - **PrivacyLRS:** No slashes (e.g., `fix-counter-sync`, `encryption-tests`)
 - **INAV:** Kebab-case (e.g., `fix-telemetry-bug`, `feature-battery-limit`)
 
-### 6. Create Workspace Directory
+### 6. Work in the Project Directory
 
-Create a workspace directory for task-related files:
+Task files go in the project's own directory, not a separate workspace:
 
 ```bash
-mkdir -p claude/developer/workspace/<task-name>
+P=claude/projects/active/<project-name>
+mkdir -p $P/{notes,tests}     # add pr/ scripts/ artifacts/ as needed
 ```
 
-This is your scratch space for notes, test scripts, and data. See `claude/developer/INDEX.md` for what goes here vs. in `claude/projects/`.
+| Subdir | Holds |
+|--------|-------|
+| `notes/` | devlogs, design decisions, research |
+| `pr/` | PR bodies, specs |
+| `tests/` | test scripts |
+| `scripts/` | project-specific tooling |
+| `artifacts/` | diffs, binaries, captured data |
+
+**Every file you add must be listed in the project's `MANIFEST.md`** — `project_ops.py audit` fails otherwise. The manifest also records branches, PR numbers, mail paths and memory slugs, so the project stays findable in one place.
+
+`claude/developer/workspace/` is scratch only. Anything left there with no owning project is reported as an orphan by the audit.
 
 ### 7. Confirm Ready
 
@@ -192,8 +203,8 @@ LOCKED_AT: $(date '+%Y-%m-%d %H:%M')
 BRANCH: transpiler_clean_copy
 EOF
 
-# 5. Create workspace
-mkdir -p claude/developer/workspace/fix-decompiler-condition-numbers
+# 5. Create project subdirs
+mkdir -p claude/projects/active/fix-decompiler-condition-numbers/{notes,tests}
 
 # 6. Ready to work!
 ```
@@ -225,6 +236,7 @@ mkdir -p claude/projects/active/<project-name>
 
 - `summary.md` - Project overview, objectives, approach (use template from `claude/projects/README.md`)
 - `todo.md` - Task breakdown (use template from `claude/projects/README.md`)
+- `MANIFEST.md` - **Mandatory.** Index of everything the project owns: files, git branches, upstream PRs, mail paths, memory slugs, external references
 
 ### 3. Add to INDEX.md
 

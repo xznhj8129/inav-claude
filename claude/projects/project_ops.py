@@ -918,6 +918,58 @@ def cmd_audit(fix=False, dry_run=False, force=False):
         print(f"  Could not find counts in INDEX.md header (unparseable/missing — cannot verify)")
         issues.append(('UNPARSEABLE_COUNTS', 1))
 
+    # Check 7: Every file in a live project dir is listed in its MANIFEST.md.
+    # The manifest is the project's index of record — it also covers things a
+    # directory scan can't see (branches, PRs, mail, memory), so an unlisted
+    # file is how material goes missing.
+    print(f"\nMANIFEST COVERAGE:")
+    manifest_issues = 0
+    for dirname, loc_type in [(ACTIVE_DIR, 'active'), (BLOCKED_DIR, 'blocked'),
+                               (BACKBURNER_DIR, 'backburner')]:
+        if not dirname.is_dir():
+            continue
+        for proj in sorted(dirname.iterdir()):
+            if not proj.is_dir() or proj.name in ('_template', '__pycache__'):
+                continue
+            manifest = proj / 'MANIFEST.md'
+            if not manifest.exists():
+                print(f"  {proj.name}: no MANIFEST.md")
+                manifest_issues += 1
+                continue
+            listed = read_file(manifest)
+            for f in sorted(proj.rglob('*')):
+                if not (f.is_file() or f.is_symlink()) or f.name == 'MANIFEST.md':
+                    continue
+                if f.name not in listed:
+                    print(f"  {proj.name}: {f.relative_to(proj)} not listed in MANIFEST.md")
+                    manifest_issues += 1
+    if manifest_issues:
+        issues.append(('MANIFEST_COVERAGE', manifest_issues))
+    else:
+        print("  All project files listed in their manifests")
+
+    # Check 8: Orphan sweep — leftover working dirs with no owning project.
+    # These are invisible to every other check because developer/workspace/ is
+    # gitignored, which is exactly how three of sensei's stale dirs survived a
+    # full project purge.
+    print(f"\nORPHAN WORKING DIRS:")
+    repo_root = PROJECTS_DIR.parent.parent
+    workspace = repo_root / 'claude' / 'developer' / 'workspace'
+    known = set()
+    for dirname in (ACTIVE_DIR, BLOCKED_DIR, BACKBURNER_DIR, COMPLETED_DIR):
+        if dirname.is_dir():
+            known.update(d.name for d in dirname.iterdir() if d.is_dir())
+    orphans = []
+    if workspace.is_dir():
+        orphans = [d.name for d in sorted(workspace.iterdir())
+                   if d.is_dir() and d.name not in known]
+    if orphans:
+        for name in orphans:
+            print(f"  claude/developer/workspace/{name}/ — no matching project")
+        issues.append(('ORPHAN_WORKDIRS', len(orphans)))
+    else:
+        print("  None found")
+
     # Summary
     print(f"\n{'='*50}")
     if issues:

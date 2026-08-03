@@ -74,7 +74,7 @@ fallback if the script can't be used.
 **If documentation is needed:**
 
 1. **Draft the user documentation NOW** (before implementing)
-   - Write it in `claude/developer/workspace/[task-name]/draft-user-docs.md`
+   - Write it in `claude/projects/active/[project-name]/notes/draft-user-docs.md`
    - Describe the feature from the user's perspective
    - Include examples, configuration steps, and any CLI/settings changes
 

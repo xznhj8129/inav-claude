@@ -78,7 +78,9 @@ cp -r claude/projects/active/_template claude/projects/active/<project-name>
 mkdir -p claude/projects/active/<project-name>
 ```
 
-Edit the summary.md and todo.md files. See `claude/projects/README.md` for templates.
+Edit the summary.md and todo.md files, and create the mandatory `MANIFEST.md`. See `claude/projects/README.md` for templates and the full directory layout (`notes/`, `pr/`, `tests/`, `scripts/`, `artifacts/`).
+
+**`MANIFEST.md` is required for every project.** It indexes everything the project owns — files, git branches, upstream PRs, mail paths, memory slugs, external references — so nothing gets orphaned. `project_ops.py audit` enforces it.
 
 **summary.md template:**
 ```markdown

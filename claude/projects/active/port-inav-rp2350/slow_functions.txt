@@ -1,4 +1,0 @@
-  - imuUpdateAttitude: 313µs — expensive
-  - processPilotAndFailSafeActions + updateArmingStatus: ~600µs combined — dominant
-  - pidController itself only ~145µs — the actual PID math is fast
-

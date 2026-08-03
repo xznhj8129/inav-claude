@@ -19,7 +19,7 @@ Use `test-engineer` agent:
 Prompt: "Reproduce issue #XXXX: [description of bug].
 Expected: [expected behavior]. Actual: [actual behavior].
 Relevant files: [file paths]
-Save test to: claude/developer/workspace/[task-name]/"
+Save test to: claude/projects/active/[project-name]/tests/"
 ```
 
 ### New Features: Test After Implementation
@@ -79,7 +79,7 @@ Modified files: [list files]"
 
 Save test files in task workspace:
 ```
-claude/developer/workspace/[task-name]/
+claude/projects/active/[project-name]/tests/
 ├── test_feature.py
 ├── test_data/
 └── results.log

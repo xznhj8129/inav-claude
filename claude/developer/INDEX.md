@@ -172,8 +172,8 @@ Look in `docs/debugging/`
 ### Starting a new task?
 **Create a workspace directory:**
 ```bash
-mkdir -p claude/developer/workspace/my-task-name
-cd claude/developer/workspace/my-task-name
+mkdir -p claude/projects/active/my-project/notes
+cd claude/projects/active/my-project
 ```
 
 **Structure it:**
