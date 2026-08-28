@@ -25,6 +25,7 @@ set -euo pipefail
 
 REPO="/media/anon/WD2TB/DataVault/TechProjects/Software/GitRepos/inav-claude/inav"
 BASE="mav/07-tunnel"
+TRUNK="upstream/maintenance-10.x"
 EXTRAS=("mav/reconnect-refine" "fix/sitl-scheduler-dup-preprocessor")
 
 cd "$REPO"
@@ -41,7 +42,12 @@ for ext in "${EXTRAS[@]}"; do
         echo "  = $ext already contained in $BASE — nothing to add"
         continue
     fi
-    mb="$(git merge-base "$ext" "$BASE")"
+    # Take what the input adds over TRUNK, not over BASE. The inputs are
+    # rebased onto trunk independently, so once one of them sits on newer
+    # trunk than BASE does, merge-base("$ext", "$BASE") is stale trunk and
+    # "$mb..$ext" sweeps in every upstream commit between the two. That is
+    # how this script once wanted to cherry-pick 93 commits to apply 2.
+    mb="$(git merge-base "$ext" "$TRUNK")"
     n="$(git rev-list --count "$mb..$ext")"
     echo "  + applying $ext ($n commit(s))"
     # If a cherry-pick lands empty (that change already reached the base another

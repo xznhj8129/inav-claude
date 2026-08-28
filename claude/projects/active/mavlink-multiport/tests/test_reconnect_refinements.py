@@ -88,13 +88,17 @@ def main():
     a.close()
 
     # --- Test 2: second peer on the same port triggers its own snapshot ---
-    # Peer A (sysid 255) heartbeats at 1 Hz. At t=12 (past the 10 s rate
-    # floor from A's connect snapshot), peer B (sysid 77) sends its first
-    # heartbeat on the same port. Per-peer tracking must classify B as a new
-    # peer and resend, even though the port never went quiet.
-    # Clear the 10s per-port snapshot floor left by test 1 before peer A
-    # connects, or its baseline snapshot gets (correctly) suppressed.
-    time.sleep(12)
+    # Peer A (sysid 254) heartbeats at 1 Hz. Peer B (sysid 77) sends its
+    # first heartbeat on the same port at t=4, INSIDE the 10 s snapshot
+    # floor that A's own connect snapshot just started. Per-peer detection
+    # already classified B as new; the floor has to be per peer too, or B's
+    # snapshot is silently dropped with no retry. Joining B late (past 10 s)
+    # passes either way and is what let this slip through review.
+    #
+    # Wait out any floor test 1's peer may still hold. On a build with the
+    # per-port bug, skipping this makes peer A the victim instead of peer B -
+    # still a failure, but of the wrong step, which muddies the diagnosis.
+    time.sleep(11)
     b = connect()
     send_heartbeat(b, sysid=254)  # peer A: fresh identity, first heartbeat
     baseline = len(drain_arming_texts(b, 3.0))
@@ -102,19 +106,19 @@ def main():
     start = time.time()
     b_joined_at = None
     post = []
-    while time.time() - start < 16.0:
+    while time.time() - start < 8.0:
         send_heartbeat(b, sysid=254)  # peer A steady at ~1 Hz
-        if b_joined_at is None and time.time() - start >= 12.0:
+        if b_joined_at is None and time.time() - start >= 4.0:
             send_heartbeat(b, sysid=77)  # peer B's first heartbeat
             b_joined_at = time.time()
         post += drain_arming_texts(b, 1.0)
 
     before_b = len([1 for ts, _ in post if b_joined_at is None or ts < b_joined_at - 0.1])
     after_b = len([1 for ts, _ in post if b_joined_at is not None and ts >= b_joined_at - 0.1])
-    report("2. new peer on busy port gets snapshot",
+    report("2. new peer joining inside the floor still gets its snapshot",
            baseline >= 1 and before_b == 0 and after_b >= 1,
            f"baseline(A)={baseline} (want >=1), while A steady={before_b} (want 0), "
-           f"after B joined={after_b} (want >=1)")
+           f"after B joined at t+4s={after_b} (want >=1)")
     b.close()
 
     failed = [r for r in results if not r[1]]

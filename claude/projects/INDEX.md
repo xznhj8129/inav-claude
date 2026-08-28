@@ -2,7 +2,7 @@
 
 This file tracks **active** projects only (TODO, IN PROGRESS, BACKBURNER, BLOCKED).
 
-**Last Updated:** 2026-08-03
+**Last Updated:** 2026-08-26
 **Active:** 3 | **Backburner:** 0 | **Blocked:** 0
 
 > **Completed projects:** See [completed/INDEX.md](completed/INDEX.md) — this archive is inherited from the previous owner (sensei-hacker) and predates this checkout.
@@ -37,7 +37,21 @@ This file tracks **active** projects only (TODO, IN PROGRESS, BACKBURNER, BLOCKE
 
 ---
 
+> **New here?** See [../../ORIENTATION.md](../../ORIENTATION.md) for the project system, layout and gotchas.
+
 ## Active Projects
+
+### 📋 no-rc-control-program
+
+**Status:** TODO (planning only) | **Type:** Feature | **Priority:** MEDIUM
+**Created:** 2026-08-23 | **Assignee:** Developer 📝
+
+No-RC (nav-only / headless) control for INAV: Pilot vs Command control mode, telemetry-link heartbeat failsafe, MC autolaunch, mode-availability rules. Single design doc covers everything.
+
+**Directory:** `active/no-rc-control-program/`
+**Design:** `design.md`
+
+---
 
 ### 🚧 mavlink-multiport
 
@@ -70,15 +84,5 @@ Port the experimental **Dual RX fallback** feature (primary/secondary receiver, 
 **Source:** `origin/dualrx` (tip `95d968c8`) + artifacts also in `inav_development/mydev/branch/dualrx/` (external, diverged — see MANIFEST)
 
 ---
-
-### 📋 feature-rc-less-telemetry-control
-
-**Status:** TODO | **Type:** Feature (safety-critical, design-first) | **Priority:** LOW
-**Created:** 2026-07-22 | **Assignee:** Developer 📝
-
-Add a GCS/datalink-heartbeat failsafe (PX4/ArduPilot `FS_GCS` model) as a second, independent liveness source alongside RC-link failsafe. Lets aircraft fly under telemetry/nav control without streaming RC frames or a companion computer, while keeping a real link-loss response. INAV has no GCS failsafe today (confirmed — failsafe is 100% RX-loss driven). **Design done (`design.md`); ready to implement. Gate is SITL failsafe testing, not a security review.**
-
-**Directory:** `active/feature-rc-less-telemetry-control/`
-**Repository:** inav (design phase produces no code) | **Note:** Not yet assigned — awaiting user go-ahead
 
 ---
