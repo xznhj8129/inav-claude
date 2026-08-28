@@ -168,7 +168,7 @@ claude/developer/scripts/
 
 ### Project work files
 
-**Always:** `claude/projects/active/<project-name>/` — see `claude/projects/README.md` for the subdirectory layout and the mandatory `MANIFEST.md`.
+**Always:** `claude/projects/active/<project-name>/` — see `claude/manager/projects/README.md` for the subdirectory layout and the mandatory `MANIFEST.md`.
 
 ### Throwaway scratch (no owning project)
 

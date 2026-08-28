@@ -44,7 +44,7 @@ claude/
 
 **Speaker Notes (~100 words):**
 
-First, role separation. Every conversation with Claude starts with: "Which role should I take on today?" This isn't just organizational theater - it's fundamental to context management. The manager role loads guides about project tracking and task assignment. The developer role loads coding standards, build instructions, and testing procedures. Each role has its own inbox/outbox email system for communication. This means when Claude is in developer mode, it doesn't have the manager's project tracking documentation cluttering its context. And the manager never sees low-level build instructions. Each role gets exactly the context it needs, nothing more.
+First, role separation. Every conversation with Claude starts with: "Which role should I take on today?" This isn't just organizational theater - it's fundamental to context management. The manager role loads guides about project tracking and task assignment. The developer role loads coding standards, build instructions, and testing procedures. Each role has its own inbox/sent email system for communication. This means when Claude is in developer mode, it doesn't have the manager's project tracking documentation cluttering its context. And the manager never sees low-level build instructions. Each role gets exactly the context it needs, nothing more.
 
 ---
 
@@ -216,7 +216,7 @@ inavflight/
 ├── claude/                     # Role-specific workspaces
 │   ├── manager/
 │   │   ├── README.md           # Manager role guide
-│   │   └── email/              # Inbox/outbox/sent
+│   │   └── email/              # Inbox/sent
 │   ├── developer/
 │   │   ├── README.md           # Developer role guide
 │   │   ├── guides/             # Just-in-time guides
@@ -225,7 +225,7 @@ inavflight/
 │   │   │   ├── CRITICAL-BEFORE-PR.md
 │   │   │   └── CRITICAL-BEFORE-TEST.md
 │   │   ├── workspace/          # Active task directories
-│   │   └── email/              # Inbox/outbox/sent
+│   │   └── email/              # Inbox/sent
 │   ├── projects/               # Project tracking
 │   │   ├── INDEX.md            # Active projects
 │   │   ├── active/             # In-progress projects

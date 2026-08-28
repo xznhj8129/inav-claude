@@ -497,6 +497,17 @@ fc_manager = {
 }
 
 
+def emit_connection_error(message='No flight controller connected'):
+    """Emit both a log line and a dedicated connection_error event.
+
+    The scrolling log panel is easy to miss during bench testing, so
+    connection failures also need an event the client renders as a
+    banner/toast that interrupts the user.
+    """
+    emit('log', {'message': message})
+    emit('connection_error', {'message': message})
+
+
 @app.route('/')
 def index():
     """Main page"""
@@ -527,7 +538,7 @@ def handle_reconnect_tester():
 def handle_reboot():
     """Handle FC reboot request"""
     if not fc_manager['fc']:
-        emit('log', {'message': 'No flight controller connected'})
+        emit_connection_error()
         return
 
     try:
@@ -609,7 +620,7 @@ def handle_tester_command(data):
 def handle_load_serial():
     """Load serial configuration"""
     if not fc_manager['fc']:
-        emit('log', {'message': 'No flight controller connected'})
+        emit_connection_error()
         return
 
     try:
@@ -657,7 +668,7 @@ def handle_toggle_msp(data):
     enabled = data['enabled']
 
     if not fc_manager['fc']:
-        emit('log', {'message': 'No flight controller connected'})
+        emit_connection_error()
         return
 
     # Find the port index
@@ -699,7 +710,7 @@ def handle_toggle_msp(data):
 def handle_save_serial():
     """Save serial configuration to EEPROM"""
     if not fc_manager['fc']:
-        emit('log', {'message': 'No flight controller connected'})
+        emit_connection_error()
         return
 
     def _do_save():
@@ -731,7 +742,7 @@ def handle_start_motor_test():
         return
 
     if not fc_manager['fc']:
-        emit('log', {'message': 'No flight controller connected'})
+        emit_connection_error()
         return
 
     socketio.start_background_task(motor_test_thread)
@@ -809,7 +820,7 @@ def handle_start_adc():
         return
 
     if not fc_manager['fc']:
-        emit('log', {'message': 'No flight controller connected'})
+        emit_connection_error()
         return
 
     fc_manager['adc_monitoring'] = True
@@ -888,7 +899,7 @@ def handle_test_elrs_rx():
         return
 
     if not fc_manager['fc']:
-        emit('log', {'message': 'No flight controller connected'})
+        emit_connection_error()
         return
 
     port = fc_manager['port']
@@ -973,7 +984,7 @@ def handle_configure_test_mixer():
             so each servo sits at a progressively different position for visual inspection.
     """
     if not fc_manager['fc']:
-        emit('log', {'message': 'No flight controller connected'})
+        emit_connection_error()
         return
 
     try:
@@ -1000,8 +1011,8 @@ def handle_configure_test_mixer():
                 emit('log', {'message': f'Motor {motor_idx + 1}: throttle=1 roll=1 pitch=1 yaw=1'})
                 motor_idx += 1
             elif is_servo:
-                # Each servo gets 20% more deflection: -70(15%), -50(25%), -25(35%)…
-                rate = -(-70 + servo_idx * 20)
+                # Each servo gets 10% more deflection: -150(15%), -250(25%), -350(35%)…
+                rate = -(150 + servo_idx * 100)
                 rate_pct = abs(rate) // 10
                 fc_manager['fc'].set_servo_mixer_rule(
                     servo_rule_idx, servo_idx, INPUT_MAX, rate, speed=0, condition_id=-1)
@@ -1020,7 +1031,7 @@ def handle_configure_test_mixer():
 def handle_load_outputs():
     """Load physical PWM output mapping and current mode overrides"""
     if not fc_manager['fc']:
-        emit('log', {'message': 'No flight controller connected'})
+        emit_connection_error()
         return
 
     try:
@@ -1072,7 +1083,7 @@ def handle_set_output_mode(data):
     mode = data.get('mode')
 
     if not fc_manager['fc']:
-        emit('log', {'message': 'No flight controller connected'})
+        emit_connection_error()
         return
 
     mode_names = {0: 'Auto', 1: 'Motor', 2: 'Servo', 3: 'LED'}
@@ -1090,7 +1101,7 @@ def handle_set_output_mode(data):
 def handle_save_outputs():
     """Save output config to EEPROM and reboot"""
     if not fc_manager['fc']:
-        emit('log', {'message': 'No flight controller connected'})
+        emit_connection_error()
         return
 
     def _do_save():

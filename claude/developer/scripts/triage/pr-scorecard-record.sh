@@ -19,7 +19,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-CACHE_FILE="${SCRIPT_DIR}/pr-scorecard-history.json"
+CACHE_FILE="$(cd "$SCRIPT_DIR/../../../local-data/triage" 2>/dev/null && pwd)/pr-scorecard-history.json"
+mkdir -p "$(dirname "$CACHE_FILE")"
 
 # ---------------------------------------------------------------------------
 # --list mode

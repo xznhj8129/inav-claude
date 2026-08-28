@@ -42,20 +42,32 @@ Use this string **everywhere**: directory names, rename script argument, release
 
 `inav/` and `inav-configurator/` are shared working directories — other roles (Developer) check out and commit to them concurrently. A build or PG-validation run in an unlocked checkout can have its `HEAD` moved out from under it mid-run, silently invalidating the result.
 
-Before checking out a release branch locally (yourself or via the inav-builder agent) for anything that needs a pinned commit:
+Before checking out a release branch locally (yourself or via the inav-builder agent) for anything that needs a pinned commit, acquire a lock with `claude/locks/lock_manager.py` — do not check or write lock files by hand:
 
 ```bash
-cat claude/locks/inav.lock 2>/dev/null && echo "LOCKED - STOP" || echo "Available"
-# if available:
-cat > claude/locks/inav.lock << EOF
-LOCKED_BY: Release Manager
-TASK: <what you're building/verifying>
-LOCKED_AT: $(date '+%Y-%m-%d %H:%M')
-BRANCH: <branch-name>
-EOF
+REPO=$(python3 claude/locks/lock_manager.py acquire --task "<what you're building/verifying>" --branch <branch-name> --type firmware)
 ```
 
-Same pattern for `claude/locks/inav-configurator.lock`. Full rules: `claude/locks/README.md`. **Release the lock (`rm claude/locks/inav.lock`) as soon as your build/verification is done** — don't hold it for the whole release process, only for the parts that actually touch the shared checkout.
+Use `--type configurator` for `inav-configurator/`. This tries `inav/`,
+`inav2/`, `inav3/` in order, skips anything locked or unexpectedly dirty,
+and prints the checkout to use (e.g. `inav2`) — build in `$REPO`, not
+necessarily `inav/`. The script records `$CLAUDE_CODE_SESSION_ID`
+automatically, so it doesn't have the "hand-written lock missing
+SESSION_ID gets flagged as a different session" problem that hit the 9.1.1
+release (2026-07-13).
+
+If it exits non-zero, every candidate is locked or unexpectedly dirty —
+investigate (see `claude/locks/README.md`) rather than forcing an
+acquisition or building in a shared checkout you don't hold the lock on.
+
+**Release the lock as soon as your build/verification is done:**
+```bash
+python3 claude/locks/lock_manager.py release "$REPO"
+```
+Don't hold it for the whole release process — only for the parts that
+actually touch the shared checkout. It also warns if the checkout is left
+dirty (e.g. build output) — clean that up so the next task can reuse it.
+Full rules: `claude/locks/README.md`.
 
 If a build must run unattended or for a while, prefer an isolated `git clone` to a scratch path over the shared checkout regardless — the lock protects against concurrent writers, but an isolated clone also avoids `HEAD` being reused for something else between your checkout and your verification.
 

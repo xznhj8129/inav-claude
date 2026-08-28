@@ -40,7 +40,7 @@ Use Edit/Write tools only for:
 Use the `email-manager` agent to send/receive messages with other roles (Developer, Release Manager, Security Analyst, Tester).
 
 ## Projects
-@../claude/projects/README.md
+@../claude/manager/projects/README.md
 
 ## Start Here
 

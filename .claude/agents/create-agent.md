@@ -230,7 +230,7 @@ Note each agent should have only ONE file in .claude/agents/. You can do this:
 ```
 
 That's three different agents.
-Working files belong in the owning project directory, claude/projects/active/<project>/ (see claude/projects/README.md). claude/developer/workspace/ is scratch only.
+Working files belong in the owning project directory, claude/projects/active/<project>/ (see claude/manager/projects/README.md). claude/developer/workspace/ is scratch only.
 
 Also note agents are NOT created in inav/.claude/ , or inav-configurator/.claude/ . Do not create a new agents/ directory in a a new place. Use the existing .claude/agents/ directory.
 

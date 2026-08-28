@@ -70,7 +70,6 @@ Your role has:
 - `inbox/` - Incoming messages
 - `inbox-archive/` - Processed messages
 - `sent/` - Sent message copies
-- `outbox/` - Drafts awaiting delivery
 
 ---
 

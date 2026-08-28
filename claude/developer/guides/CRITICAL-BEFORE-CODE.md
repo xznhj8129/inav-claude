@@ -13,42 +13,35 @@ discovery-narrative comments or docs ("used to be X", "this used to fail
 because Y") — describe only the current state and current rationale; history
 belongs in the commit message, not the code or guide text.
 
-## 1. Check Lock Files
+## 1. Acquire a Lock
+
+**This applies before ANY `git checkout`/`switch` or build in any of the
+firmware checkouts or `inav-configurator/` — including read-only
+investigation or build-comparison tasks that never intend to commit.**
+Checking out a branch mutates the shared working tree regardless of whether
+you plan to write code; a lock check gated only on "am I about to commit"
+arrives too late.
+
+**Use `claude/locks/lock_manager.py` to check and acquire — do not read or
+write lock files by hand:**
 
 ```bash
-# Check if directory is locked by another session
-cat claude/locks/inav.lock 2>/dev/null || echo "No lock"
-cat claude/locks/inav-configurator.lock 2>/dev/null || echo "No lock"
+REPO=$(python3 claude/locks/lock_manager.py acquire --task <task-name> --branch <branch-name> --type firmware)
 ```
 
-**If locked:** STOP. Report to manager that repo is locked. Do NOT proceed.
+Pass `--type configurator` for `inav-configurator/` work. On success it
+prints the checkout to use (e.g. `inav2`) — that's up to three parallel
+firmware checkouts (`inav/`, `inav2/`, `inav3/`), separate working trees
+where a lock on one does not block another. On failure it exits non-zero
+and explains why every candidate was skipped (locked by another session, or
+unexpectedly dirty). **STOP and report to the manager rather than forcing an
+acquisition** — do not hand-write a lock file or proceed into a locked or
+dirty directory.
 
-## 2. Acquire Lock (if unlocked)
-
-Use the `/start-task` skill - it handles lock acquisition and branch creation automatically.
-
-Or manually:
-```bash
-# For firmware
-cat > claude/locks/inav.lock << EOF
-LOCKED_BY: Developer
-TASK: [task-name-from-assignment]
-LOCKED_AT: $(date '+%Y-%m-%d %H:%M')
-BRANCH: [branch-name]
-SESSION_ID: $CLAUDE_CODE_SESSION_ID
-EOF
-
-# For configurator
-cat > claude/locks/inav-configurator.lock << EOF
-LOCKED_BY: Developer
-TASK: [task-name-from-assignment]
-LOCKED_AT: $(date '+%Y-%m-%d %H:%M')
-BRANCH: [branch-name]
-SESSION_ID: $CLAUDE_CODE_SESSION_ID
-EOF
-```
-
-use inav.lock for the inav/ directory, inav2.lock for the inav2/ directory, or inav3.lock for the inav3 directory
+See `claude/locks/README.md` for the full design: lock file format, the
+dirty-checkout sanity check the script runs automatically before handing out
+an unlocked checkout, and what to do if a candidate turns out to be dirty or
+a lock looks stale.
 
 ## 3. Create Git Branch
 The branch MUST be created off of the correct version branch — never off master.
@@ -167,5 +160,17 @@ Use the Edit tool to append new entries. Format: `- **Brief title**: One-sentenc
 - **Always use fc-flasher agent for hardware flashing**: Never invoke `dfu-util` directly. STM32H7 boards silently fail DFU exit with raw dfu-util ("can't detach"), leaving the FC stuck. The fc-flasher agent uses the known-good script that handles all STM32 variants correctly.
 - **Harness-only tasks (`.claude/`, `claude/`) skip branch creation**: A guardrail hook blocks `git checkout -b` in the root `inavflight/` repo — branches belong in the project repos (`inav/`, `inav-configurator/`, etc.). For tasks that only touch harness config/docs, commit straight to `master`, matching existing harness commit history.
 -- **Floats must end in `f` to avoid promotion to double**: We don't want to load the double-precision math library by accidentally using 2.0 instead of 2.0f
+- **Check for an existing upstream fix before implementing from a project plan**: Even when a manager-written summary already sketches an implementation, search open upstream PRs touching the same file/symptom (`gh pr list`/`gh api ...pulls` search, or a quick web check of the issue tracker) before writing new code. A pre-written plan can be superseded by someone else's already-tested fix with a cleaner design; cherry-picking that commit (crediting the original author) beats re-deriving a divergent implementation.
+- **Use the real `$CLAUDE_CODE_SESSION_ID` in lock files, not a placeholder string**: writing something like `SESSION_ID: developer-session` instead of the actual env var causes the "is this repo locked by a different session" hook check to false-positive on every subsequent command touching that repo, generating a spurious approval prompt each time. Fix immediately with `Edit` if caught after the fact — don't leave it, since the friction compounds across the whole session.
+- **Comments should label the one non-obvious thing, not explain the code**: e.g. for a regex, a few-word charset/format label (`# accept only base64 encoded input`) beats a multi-line comment justifying why the check exists or cross-referencing the caller. Presume the reader can read code; skip the comment entirely if nothing is opaque.
+- **In security-critical code, prefer fewer configuration knobs and shorter functions over flexibility**: during a setuid TOTP validator rewrite, the user repeatedly cut things back — rejected an env-var override for a path (env vars are attacker-influenced in some contexts and add a second code path to audit), rejected getpwnam()-based path defaults when the real deployment didn't use home directories, and rejected threading an extra out-parameter through a helper when the caller could just check for the condition directly. Stated principle: "complexity is the enemy of security." When writing auth/validation code, default to the fewest inputs, the fewest branches, and functions short enough to read top-to-bottom in one pass — don't add a knob or parameter unless something concrete needs it.
 
+- **"It's live in production" is not authorization to import a change as-is**: when syncing a repo against a diff pulled from a real server, evaluate every hunk on its own merits rather than reproducing it verbatim. Skip commented-out dead code and one-off debugging hacks (a hardcoded email redirect for one account, a send-suppression rule for one address) — they add confusion, not capability. Separately, flag anything that introduces or preserves a live credential, a disabled/no-op auth check, or an endpoint that unconditionally reports success, for explicit user confirmation before merging — regardless of whether it's commented out or actively running. Being real and being safe are different questions.
+
+- **Subagents don't inherit your lock discipline — tell them the safe path explicitly**: an `inav-code-review` run, asked only to review a diff file, went looking for surrounding source context on its own and created a `git worktree`/added a remote directly inside `inav/` while it was locked by a different session's task. No harm resulted (worktree adds are additive; the other session's checked-out branch was untouched), but it was luck, not design. When delegating any agent that might read repo state beyond a supplied diff/file path while a repo lock is held by another session, explicitly tell it which repo/path is safe to touch (e.g. a second clone like `inav2/`) — don't assume it will infer the lock exists or avoid the locked one.
+- **Check `git status`/`git log` on a task's named tool/script file before "extending" it**: a project's assignment email said a script "does not yet model X, needs extending" based on a report written days earlier. The extension already existed, fully implemented with its own self-tests — a prior session had written it but never committed it (the file was still untracked in `git status`). Re-implementing from the stale report would have duplicated real work and likely diverged from it. Five seconds of `git status`/`git log -- <path>` before writing new code in an assigned-but-possibly-already-done tool file would have caught this immediately either way.
+- **Be sure you are on the correct branch before starting work**: a lock-handed-out checkout was already sitting on a branch from a prior, unrelated task (`fix-configurator-ci-macos-arm64-oom`), which turned out to have its own open PR (#2706) for a different fix. A commit went onto it before checking — caught before pushing (`gh pr list --head <branch>` would have caught it sooner), but a checked-out branch being handed to you doesn't mean it's the right one for this task.
+- **A bot review comment (Qodo, CodeRabbit, etc.) deserves the same trace-through-the-code verification as a human's, not a dismissal**: two Qodo comments on an upstream PR claimed (1) a refused MSP write's `callback(false)` gets ignored by existing save-chain callbacks, so the save silently "succeeds" and the FC reboots anyway, and (2) one write code's naming pattern slips past the write-classifier regex. Both were confirmed correct by actually reading the callback chain (`tabs/failsafe.js`'s `savePhaseTwo()` takes no params, ignores the arg) and running the regex against every MSPCodes name in `node -e`. Cheap to verify, and both were real, non-obvious bugs a text-only review would likely have missed.
+- **Tell a lookup agent exactly which checkout to read, especially with multiple worktrees in the repo root**: asked to look up code in `inav2/`, the `msp-expert` agent instead read and reported from an unrelated untracked `inav-pr11756-review/` directory sitting in the repo root, guessing it was "the active working copy" — it happened to contain the same file, so the answer was still correct, but nothing forced that. When several `inav*`/ad hoc review checkouts coexist, state the exact path in the prompt rather than trusting the agent to infer the right one.
+- **Lock manager needs a real session id when `$CLAUDE_CODE_SESSION_ID` is unset**: in harnesses without that var (e.g. DSH), `lock_manager.py acquire` exits non-zero until you pass `--session "$DSH_SESSION_ID"` — the real session identifier, never a placeholder string like `developer-session` (placeholder sessions false-positive the lock-check hook on every write).
 <!-- Add new lessons above this line -->

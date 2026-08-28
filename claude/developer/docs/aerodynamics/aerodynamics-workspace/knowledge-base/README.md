@@ -40,6 +40,18 @@ In real flight, pilot/autopilot controls:
 
 These are coupled - changing one affects both airspeed and altitude over time.
 
+### `nav_fw_pitch2thr` (Fixed-Wing Pitch-to-Throttle)
+
+The reviewed, canonical analysis of INAV's `nav_fw_pitch2thr` setting —
+including the three disagreeing theoretical gain estimates and why they
+disagree — lives at `inav/docs/development/fixed-wing-pitch2thr-tuning.md`
+(dev-facing) and `inav/docs/Fixed Wing Pitch To Throttle Tuning.md`
+(user-facing flight-test procedure), not in this directory. Two exploratory
+calculator scripts and plots from the underlying constant-T/W-envelope
+derivation remain here as derivation aids, not shipped documentation:
+`calculate-envelopes-tw-below-1.py`, `calculate-local-derivative.py`, and
+the `equal-airspeed-*.gnuplot`/`.png` outputs.
+
 ## Organization
 
 Each knowledge base entry includes:
@@ -101,4 +113,4 @@ See `../QUICK-START.md` for search instructions.
 ---
 
 *Knowledge base maintained by: aerodynamics-expert agent*
-*Last updated: 2026-01-18*
+*Last updated: 2026-07-22*

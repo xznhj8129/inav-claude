@@ -139,16 +139,17 @@ assume the whole family is identical, resolve differences.
 
 - **F4/F7:** DMA streams are fixed per timer-channel, from a small pool of
   1-3 named alternatives per channel — real conflicts happen when two
-  requested channels only have one shared option. Always run the
-  `raytools/dma_resolver/dma_resolver.html` tool (or its `dma_maps.js`
-  data directly via a small Node script) against the exact `DEF_TIM` table.
+  requested channels only have one shared option. Cross-reference the exact
+  `DEF_TIM` table against the MCU's DMA request mapping table (its
+  reference manual, or STM32CubeMX's pinout view) before finalizing.
 - **H7 (DMAMUX):** any of DMA1/DMA2's 16 streams can serve any peripheral —
   conflicts are rare, generally only when total simultaneous DMA-users
-  exceeds 16. Still check the `dmaMapH7` table in `dma_maps.js` for outright
-  *missing* entries — e.g. `TIM15_CH2` has **no** DMA request line at all
-  on H7 (only `TIM15_CH1` does), which is a real hardware constraint, not a
-  target.h bug, and explains why some existing targets mark that channel
-  `DMA_NONE` (PWM-only, no DSHOT) rather than a conflict resolution choice.
+  exceeds 16. Still check for outright *missing* entries — e.g. `TIM15_CH2`
+  has **no** DMA request line at all on H7 (only `TIM15_CH1` does, confirmed
+  in `drivers/timer_def_stm32h7xx.h`), which is a real hardware constraint,
+  not a target.h bug, and explains why some existing targets mark that
+  channel `DMA_NONE` (PWM-only, no DSHOT) rather than a conflict resolution
+  choice.
 - Count total simultaneous DMA-hungry peripherals (motor/servo DSHOT
   channels + LED strip + gyro SPI + OSD SPI + SDIO + any UART DMA) against
   the stream budget as a sanity check even when using DMAMUX.
@@ -158,21 +159,21 @@ assume the whole family is identical, resolve differences.
 
 ## 6. Things that "look wired" but do nothing under INAV
 
-Don't assume every trace on the schematic maps to firmware behavior. Two
-recurring examples:
+Don't assume every trace on the schematic maps to firmware behavior. A
+recurring example:
 - **UART RTS/CTS pins wired in hardware** (e.g. for a DJI HD air unit) —
   INAV's UART driver hardcodes `USART_HardwareFlowControl_None`
   (`drivers/serial_uart.c`), so those pins are just inert GPIO from
   firmware's perspective even though the schematic (and the other
   firmware this board also targets) uses them.
-- **CAN/FDCAN transceivers** — check `grep -rln "FDCAN\|USE_CAN" inav/src/main/`
-  before assuming any support exists. If it doesn't, say so in the
-  design-feedback doc rather than silently omitting the pins with no
-  explanation. CAN support will probbaly be added in INAV 10.0
 
-Always mention these in the manufacturer feedback doc — from their side it
-looks unwired/broken if undocumented, when it's actually just an
-inter-firmware compatibility feature that doesn't apply to INAV yet.
+Conversely, don't assume a peripheral is unsupported just because it's
+unfamiliar — INAV has real CAN bus support via DroneCAN
+(`grep -rl "USE_DRONECAN" inav/src/main/target/*/target.h` to see which
+shipping targets already use it), enabled per-target with `USE_DRONECAN`
+plus `CAN1_RX`/`CAN1_TX`/`CAN1_STANDBY` pin defines. Check
+`grep -rln "USE_DRONECAN\|FDCAN" inav/src/main/` before assuming any CAN
+support is missing.
 
 ## 7. Writing the manufacturer feedback doc
 
@@ -182,8 +183,7 @@ Split into three sections, always:
 2. **Corrected from any preliminary/internal scan** — say plainly what was
    wrong in any earlier assumption and how the schematic actually reads.
 3. **Issues / flags** — anything that needs their attention or a design
-   decision (unpopulated buses, unverifiable orientation, INAV feature gaps
-   like CAN/flow-control).
+   decision (unpopulated buses, unverifiable orientation, INAV feature gaps).
 
 Also flag (per team policy) any `config.c` containing
 `beeperConfigMutable()->pwmMode = true;` for review — it's often correct
@@ -194,8 +194,5 @@ template.
 ## Related Documentation
 
 - `creating-targets.md` — general target.h/target.c/config.c authoring steps
-- `timer-dma-conflicts.md` — DMA conflict theory and the resolver tool
-- `stm32h7/`, `stm32f405/`, `stm32f722/`, `stm32f745/`, `stm32f765/` —
-  per-MCU datasheet indexes and AF search tools
-- `raytools/dma_resolver/` — DMA conflict resolver (HTML tool + `dma_maps.js`
-  data usable directly from Node scripts)
+- `timer-dma-conflicts.md` — DMA conflict theory and resolution strategies
+- `at32f435-mux-defaults.md` — AT32F435's MUX-based alternate-function model, if working on an AT32 target

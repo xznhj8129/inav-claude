@@ -109,6 +109,30 @@ injections:
       maintenance-10.x into release/9.x). If wrong: `git merge --abort`. See
       guides/CRITICAL-BEFORE-MERGE.md before resolving any conflicts.
 
+  - name: "git rebase or pull --rebase on a shared branch"
+    command_pattern: "^git$"
+    argument_pattern: "^(-C\\s+\\S+\\s+)?(rebase\\b|pull\\b.*--rebase)"
+    throttle: always
+    context: |
+      Rebasing a pushed/shared branch requires force-push to update the remote,
+      which is hard-blocked here - real incident: a rebase-pull replayed ~114
+      unrelated upstream commits onto a shared PR branch (79 commits, 179 files)
+      before anyone noticed. Global pull.rebase is now false, so plain `git pull`
+      merges - but an explicit --rebase or `git rebase` here has the same risk.
+      Use `git fetch` + `git merge` instead. See guides/CRITICAL-BEFORE-MERGE.md
+      ("MERGE, Not Rebase").
+
+  - name: "gh pr checkout (predicts diffing against local base branch)"
+    command_pattern: "^gh$"
+    argument_pattern: "^pr\\s+checkout\\b"
+    throttle: once_per_session
+    context: |
+      Before diffing this PR against a local base branch (e.g. `git diff
+      base...HEAD`), fetch the real upstream base first (`git fetch upstream
+      <base-branch>`, diff against `upstream/<base-branch>`) - a local mirror
+      branch can be hundreds of commits stale, producing a diff bloated with
+      unrelated files instead of just the PR's actual changes.
+
   - name: "Direct cmake/make instead of inav-builder"
     command_pattern: "^(cmake|make)$"
     throttle: once_per_session
@@ -158,6 +182,18 @@ injections:
       No lock file in claude/locks/ for this repo. Run /start-task to acquire
       one, or confirm this is intentional.
 
+  - name: "lock_manager.py acquire"
+    command_pattern: "^python3?$"
+    argument_pattern: "lock_manager\\.py\\s+acquire\\b"
+    throttle: once_per_session
+    context: |
+      If a candidate is skipped as dirty for only `claude/`/`.claude/` (a
+      root-owned tripwire dir, or local Claude Code config), check whether
+      it's just missing from that checkout's `.git/info/exclude` (compare
+      against a checkout where it's already excluded) before assuming real
+      WIP - don't dig through completion reports for something this
+      mechanical. See claude/locks/README.md.
+
   # --- Domain-specific (INAV firmware design), not harness workflow ---
 
   - name: "Editing settings.yaml"
@@ -167,4 +203,16 @@ injections:
     throttle: once_per_session
     context: |
       Before adding/changing a setting, read
-      claude/developer/docs/parameter_groups/when-to-add-a-setting.md.
+      inav/docs/development/settings/when-to-add-a-setting.md.
+
+  - name: "Editing .github/workflows"
+    tool_name_pattern: "^(Write|Edit)$"
+    tool_input_patterns:
+      file_path: "(^|/)\\.github/workflows/.*\\.ya?ml$"
+    throttle: once_per_session
+    context: |
+      Read claude/developer/guides/github-actions-workflows.md first -
+      several trigger-type gotchas there (workflow_run vs. push branch
+      resolution, dead "!"-only branches: filters, workflow_call's
+      event_name, aggregate workflow_run.conclusion) cost real debugging
+      time last time and aren't obvious from the YAML alone.

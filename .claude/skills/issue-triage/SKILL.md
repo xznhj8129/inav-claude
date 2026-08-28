@@ -1,5 +1,5 @@
 ---
-description: Triage and analyze GitHub issues from iNavFlight/inav repository
+description: Triage and analyze GitHub issues from iNavFlight/inav and iNavFlight/inav-configurator
 triggers:
   - triage issues
   - analyze issues
@@ -12,14 +12,22 @@ triggers:
 
 # GitHub Issue Triage Skill
 
-Systematically analyze and categorize GitHub issues from the iNavFlight/inav repository.
+Systematically analyze and categorize GitHub issues from the iNavFlight/inav and
+iNavFlight/inav-configurator repositories. Category files are shared across both
+repos — issue numbers alone don't disambiguate, so each entry in INDEX.md and the
+category files should note the repo (e.g. `inav #11710` vs `inav-configurator #2701`).
 
 ## File Structure
 
+The **script** is part of the shared framework; the **data files** are local
+per-user data (gitignored under `claude/local-data/`):
+
 ```
 claude/manager/issue-triage/
+  fetch_issues.py       # Script to fetch and search issues (framework, tracked)
+
+claude/local-data/issue-triage/   # Local per-user data (gitignored)
   INDEX.md              # Quick lookup: issue# -> category file
-  fetch_issues.py       # Script to fetch and search issues
   issues.json           # Cached issues data from GitHub
   readily-solvable.md   # Issues ready to fix
   needs-investigation.md
@@ -30,39 +38,62 @@ claude/manager/issue-triage/
   no-action.md          # Won't fix, duplicates, already fixed
 ```
 
-## Quick Commands
-
-### Refresh Issue Cache
+`fetch_issues.py` writes/reads its cache files under
+`claude/local-data/issue-triage/` automatically, so run it from anywhere
+(no `cd` needed):
 
 ```bash
-cd claude/manager/issue-triage
-python3 fetch_issues.py --refresh
+python3 claude/manager/issue-triage/fetch_issues.py --repo inav,inav-configurator --days 90 --refresh
+```
+
+## Quick Commands
+
+### Fetch Recent Issues Across Both Repos (preferred for periodic triage)
+
+Uses GitHub's Search API to filter by creation date server-side — much cheaper
+than paging through the entire open-issue backlog when you only care about a
+recent window (e.g. "what's new in the last 90 days").
+
+```bash
+python3 claude/manager/issue-triage/fetch_issues.py --repo inav,inav-configurator --days 90 --refresh
+```
+
+### Refresh Issue Cache (single repo, all open issues)
+
+```bash
+python3 claude/manager/issue-triage/fetch_issues.py --refresh
+python3 claude/manager/issue-triage/fetch_issues.py --repo inav-configurator --refresh
 ```
 
 ### Fetch More Issues
 
 ```bash
-python3 fetch_issues.py --pages 5 --refresh
+python3 claude/manager/issue-triage/fetch_issues.py --pages 5 --refresh
 ```
 
 ### View Specific Issue
 
 ```bash
-python3 fetch_issues.py --issue 11156
+python3 claude/manager/issue-triage/fetch_issues.py --issue 11156
+python3 claude/manager/issue-triage/fetch_issues.py --issue 2701 --repo inav-configurator
 ```
 
 ### Search Issues
 
 ```bash
-python3 fetch_issues.py --search "GPS"
-python3 fetch_issues.py --search "overflow"
+python3 claude/manager/issue-triage/fetch_issues.py --search "GPS"
+python3 claude/manager/issue-triage/fetch_issues.py --search "overflow"
 ```
 
 ### List Cached Issues
 
 ```bash
-python3 fetch_issues.py
+python3 claude/manager/issue-triage/fetch_issues.py
 ```
+
+`--repo` accepts a comma-separated list; each entry is either shorthand
+(`inav`, `inav-configurator`, expanded to `iNavFlight/<name>`) or a full
+`owner/name`. Default is `inav`.
 
 ## Categories
 

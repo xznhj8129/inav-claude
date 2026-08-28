@@ -85,18 +85,12 @@ For a typical release:
 - `release-manager/email/inbox/` - Incoming messages
 - `release-manager/email/inbox-archive/` - Processed messages
 - `release-manager/email/sent/` - Copies of sent messages
-- `release-manager/email/outbox/` - Draft messages awaiting delivery
 
 **Message Flow:**
-- **To Manager:** Create in `release-manager/email/sent/`, copy to `manager/email/inbox/`
-- **To Developer:** Create in `release-manager/email/sent/`, copy to `developer/email/inbox/`
+- **To Manager:** `python3 claude/agents/email-manager/email_ops.py send release-manager manager <filename>.md`
+- **To Developer:** `python3 claude/agents/email-manager/email_ops.py send release-manager developer <filename>.md`
 - **From Manager:** Arrives in `release-manager/email/inbox/` (copied from `manager/email/sent/`)
 - **From Developer:** Arrives in `release-manager/email/inbox/` (copied from `developer/email/sent/`)
-
-**Outbox Usage:**
-The `outbox/` folder is for draft messages that need review before sending. When ready:
-1. Move from `outbox/` to `sent/`
-2. Copy to recipient's `inbox/`
 
 ---
 
@@ -147,6 +141,27 @@ When releasing a new major version, create maintenance branches for both reposit
 - `maintenance-10.x` - Breaking changes planned for INAV 10.0
 
 **Why master tracks the current version:** If a contributor accidentally branches from master instead of the current maintenance branch, they get current version code without pulling in breaking changes from the next major version's branch. Contributors should still branch from the current maintenance branch, not master — see `.claude/skills/git-workflow/SKILL.md` ("Creating Branches") for which branch is currently correct (a temporary override may be active).
+
+### 9.x Sunset Policy (as of 2026-08-16)
+
+9.1.1 is probably the **last regular 9.x release**. Another 9.x.y point
+release will only be cut for a very important (critical-severity) bug fix
+that can't wait for 10.0 — not for routine fixes or enhancements.
+
+Any work still open against the 9.x line (bug fixes, small enhancements,
+etc.) no longer has its own release path and should be re-scoped as 10.x
+material by default, since 10.0 is now the next release most open work will
+actually ship in. Large new-platform/new-target efforts that are too big or
+new to reasonably land in 10.0 (e.g. the RP2350 port) may instead be 11.x
+material — use judgment on which large efforts fall into that bucket.
+
+If an open issue looks severe enough to justify a 9.x.y point release on
+its own, flag it explicitly as a candidate for that track rather than
+silently folding it into 10.0 planning — that's a separate (faster,
+narrower) release decision.
+
+See `claude/local-data/manager/10.0-rc1-priorities.md` for the 10.0 RC1 priority list
+this policy affects.
 
 ### Creating Maintenance Branches
 

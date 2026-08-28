@@ -182,7 +182,6 @@ Prompt: "Read my inbox. Current role: security-analyst"
 - `security-analyst/email/inbox/` - Incoming analysis requests and messages
 - `security-analyst/email/inbox-archive/` - Processed assignments
 - `security-analyst/email/sent/` - Copies of sent messages
-- `security-analyst/email/outbox/` - Draft messages awaiting delivery
 
 **Message Templates:**
 Use the **communication** skill to view message templates and guidelines:

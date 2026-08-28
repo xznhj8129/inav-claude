@@ -27,6 +27,9 @@ git diff --stat
 
 Review that all intended changes are present and no unintended files are modified.
 
+**Clean up untracked scratch directories** (`build_*`, `build-*`, and
+similar ad-hoc build/test output) before releasing the lock — see step 10.
+
 ### 2. Run Tests (if applicable)
 
 Use the **inav-builder** agent for the build check (never `cmake`/`make`/`npm` directly)
@@ -159,6 +162,7 @@ Decide — don't default to writing. Full rubric: `claude/developer/guides/READM
 - **Reusable tooling worth keeping?** If yes, move it from `workspace/` to its
   existing destination (`claude/developer/scripts/<category>/` or
   `claude/agents/<agent-name>/scripts/`). If no, nothing further to do.
+- **PR to inav-claude?** If you saved reusable tooling or documentation and it may be useful to other users of inav-claude, ask the user if you should share that tooling by making a PR to upstream, https://github.com/sensei-hacker/inav-claude
 
 ### 8. Send Completion Report
 
@@ -219,14 +223,42 @@ email-manager: Archive message <filename>. Current role: developer
 ### 10. Release the Lock
 
 ```bash
-# For firmware
-rm claude/locks/inav.lock
-
-# For configurator
-rm claude/locks/inav-configurator.lock
+python3 claude/locks/lock_manager.py release <inav|inav2|inav3|inav-configurator>
 ```
 
-### 11. Increment the Cycle Counter
+It reports any uncommitted or untracked files left in the checkout after
+releasing — if it warns, clean those up (e.g. remove leftover `build_*`
+directories) so the checkout is actually idle for whoever picks it up next.
+See `claude/locks/README.md` for details.
+
+### 11. Confirm Every Step Was Completed
+
+Before closing out, explicitly report back steps 1–10 as a checklist, one
+line each, marked done or not-done (do not just say "all done" — list
+them):
+
+```
+1. [x] Changes verified (git status/diff reviewed)
+2. [x] Tests run — <pass/fail summary, or "N/A">
+3. [x] Changes staged
+4. [x] Commit message written
+5. [x] Pushed to remote
+6. [x] PR created — #<number>, or "not applicable"
+7. [x] Lesson/tooling capture check done
+8. [x] Completion report sent to manager — <filename>
+9. [x] Task email archived — <filename>
+10. [x] Lock released
+```
+
+This exists because step 9 (archiving the task email) in particular has a
+history of being silently skipped: it has no automatic trigger, nothing
+downstream fails if it's missed, and it's easy to consider the task
+"done" once the completion report is sent. Listing it explicitly here
+forces a real check rather than an assumption. If any item is actually
+not done, do it now before proceeding — don't mark it done to make the
+list clean.
+
+### 12. Increment the Cycle Counter
 
 Do not do this step if if the username is raymorris.
 After copying the report to the manager inbox, only if claude/onboarding/completed-cycles.txt reads less than 5, increment the counter.
@@ -239,7 +271,7 @@ CURRENT=$(cat "$COUNTER_FILE" 2>/dev/null | tr -d '[:space:]')
 echo $((CURRENT + 1)) > "$COUNTER_FILE"
 ```
 
-### 12. Close or Compact This Session
+### 13. Close or Compact This Session
 
 **Developer sessions are designed for one task at a time.** Now that this task
 is complete, tell the user:
@@ -262,8 +294,7 @@ Do not automatically start the next task. Wait for the user to decide.
 - Release the lock
 - Send completion report to manager inbox
 
-**Manager responsibilities (after receiving report):**
-- Verify work is complete
+**Manager responsibilities (after receiving report), the developer does not do these things:**
 - Move project directory from `active/` to `completed/`
 - Update `INDEX.md` (remove entry)
 - Update `completed/INDEX.md` (add entry)

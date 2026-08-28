@@ -82,7 +82,6 @@ Prompt: "Read my inbox. Current role: developer"
 - `developer/email/inbox/` - Incoming task assignments and messages
 - `developer/email/inbox-archive/` - Processed assignments
 - `developer/email/sent/` - Copies of sent messages
-- `developer/email/outbox/` - Draft messages awaiting delivery
 
 Use the `email-manager` agent for all email operations.
 
@@ -113,6 +112,8 @@ Use the `email-manager` agent for all email operations.
 | 17 | Archive assignment | **email-manager** agent and use skill /finish-task | - |
 
 **Key principle:** Before fixing a bug, have the `test-engineer` agent write a test that reproduces it. This ensures you understand the problem and can verify when it's fixed.
+
+**Key principle — the inbox is the queue, not the project tracker:** Step 1 (check inbox) is how you find out what's pending — not `claude/projects/active/<project>/summary.md` or `INDEX.md`. Those status fields are the Manager's bookkeeping, updated only after they process your completion report from their own inbox, so they can lag behind what you've actually done. If an inbox item looks like it might already be finished, check `claude/developer/email/sent/` for a prior completed/status-update email matching that project name before assuming it's still open — don't consult the project tracker to make that call.
 
 ---
 
@@ -196,8 +197,8 @@ ls -lt claude/developer/email/inbox/
 Task tool with subagent_type="email-manager"
 Prompt: "Send completion report to manager. Task: <task name>. Current role: developer"
 
-# Manual:
-cp claude/developer/email/sent/<report>.md claude/manager/email/inbox/
+# Manual (verified, atomic — never use raw cp/mv, see email-manager.md):
+python3 claude/agents/email-manager/email_ops.py send developer manager <report>.md
 ```
 
 **Archive processed assignment:**
@@ -206,8 +207,8 @@ cp claude/developer/email/sent/<report>.md claude/manager/email/inbox/
 Task tool with subagent_type="email-manager"
 Prompt: "Archive message <filename>. Current role: developer"
 
-# Manual:
-mv claude/developer/email/inbox/<assignment>.md claude/developer/email/inbox-archive/
+# Manual (verified, atomic — never use raw mv, see email-manager.md):
+python3 claude/agents/email-manager/email_ops.py archive developer <assignment>.md
 ```
 
 ---
@@ -337,6 +338,7 @@ Compose your completion report using this template, then pass to the **email-man
 - `CRITICAL-BEFORE-COMMIT.md` - Git and commit best practices
 - `CRITICAL-BEFORE-PR.md` - PR creation checklist (testing, code review, bot checks)
 - `coding-standards.md` - Code organization, quality, comments
+- `documentation-scope.md` - Where a doc belongs: `inav`/`inav-configurator` vs. `inav-claude`
 
 **Skill documentation:** `.claude/skills/*/SKILL.md`
 

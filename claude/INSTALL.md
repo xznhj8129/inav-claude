@@ -44,7 +44,7 @@ rm -rf claude/*/email/inbox/* claude/*/email/sent/*
 
 # Create directory structure
 mkdir -p claude/projects/{active,backburner,completed}
-mkdir -p claude/{manager,developer,release-manager,security-analyst}/email/{inbox,sent,outbox,inbox-archive}
+mkdir -p claude/{manager,developer,release-manager,security-analyst}/email/{inbox,sent,inbox-archive}
 mkdir -p claude/developer/workspace
 mkdir -p claude/locks
 ```

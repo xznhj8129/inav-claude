@@ -2,6 +2,29 @@
 
 Code analysis tools for INAV development.
 
+## nm Symbol Size Diff
+
+**Script:** `diff_nm_symbols.py`
+
+Diffs `arm-none-eabi-nm --size-sort` output between two builds (e.g. a PR's
+head vs. its merge-base) to attribute a flash/RAM delta to specific symbols
+instead of guessing from line count or trusting a single top-line number.
+
+**Usage:**
+```bash
+arm-none-eabi-nm --size-sort -C before.elf > before.txt
+arm-none-eabi-nm --size-sort -C after.elf > after.txt
+python3 claude/developer/scripts/analysis/diff_nm_symbols.py before.txt after.txt
+```
+
+**Note:** with LTO + `-freorder-blocks-and-partition`, single-call-site
+`static` functions are often inlined into the caller's hot/cold partition
+(a `<caller>.part.0` symbol) instead of staying as separate symbols — a
+large new `.part.0` entry usually means several new static helpers got
+folded into that caller, not one giant new function.
+
+**Created:** 2026-08-25, during `review-pr11812-navfw-flash-usage`.
+
 ## DMA Conflict Analyzer
 
 **Script:** `dma_conflict_analyzer.py`

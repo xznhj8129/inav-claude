@@ -248,7 +248,7 @@ Ready to flash? I can hand off to the **fc-flasher** agent which will preserve y
 
 Internal documentation relevant to building:
 
-- `claude/developer/docs/build-system-reference.md` - **Complete build system guide** (CMAKE_BUILD_TYPE, compiler flags, output files, debug symbols)
+- `inav/docs/development/build-system.md` - **Complete build system guide** (CMAKE_BUILD_TYPE, compiler flags, output files, debug symbols)
 - `claude/developer/scripts/testing/inav/docs/BUILDING_SITL.md` - SITL build details
 - `claude/developer/docs/debugging/gcc-preprocessing-techniques.md` - Debug build issues
 - `claude/developer/README.md` - Section "Building the Firmware" for overview

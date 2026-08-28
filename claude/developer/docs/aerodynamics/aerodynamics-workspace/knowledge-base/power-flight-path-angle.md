@@ -551,6 +551,11 @@ sin(γ_max) = (P_max/V - D) / W
 - Energy management in autonomous flight
 - Return-to-home optimization
 
+**For the specific `nav_fw_pitch2thr` setting:** the reviewed, canonical
+gain analysis (including two other models this file's climb/descent power
+ratio disagrees with, and why) lives at
+`inav/docs/development/fixed-wing-pitch2thr-tuning.md`.
+
 ---
 
 *Created: 2026-01-18*

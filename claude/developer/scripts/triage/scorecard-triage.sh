@@ -46,7 +46,8 @@ if [[ -n "$OUTPUT_FILE" ]]; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SCORE_CACHE="${SCRIPT_DIR}/pr-scorecard-history.json"
+SCORE_CACHE="$(cd "$SCRIPT_DIR/../../../local-data/triage" 2>/dev/null && pwd)/pr-scorecard-history.json"
+mkdir -p "$(dirname "$SCORE_CACHE")"
 mkdir -p /tmp/claude
 
 # ---------------------------------------------------------------------------

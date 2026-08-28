@@ -46,6 +46,42 @@ burst mode's entire point (one shared stream feeds all of a timer's channels
 via the TIM_UP request). Only a shared dmaopt across *different* timers, or a
 timer vs ADC's hardwired stream, is flagged.
 
+CONFIRMED CORRECT DESPITE A REAL BUG FOUND IN THE F4/F7/AT32 SIBLING SCRIPT
+==============================================================================
+simulate_pwm_roles.py's DMAR model had a real bug (fixed 2026-08-20, see
+claude/projects/active/investigate-shared-tim-dma-request-lines/phase1-findings.md):
+it applied F4's free-ride shortcut (a later channel of an already-locked timer
+never checks its own dmavar -- timer_impl_stdperiph.c) universally to F7
+targets too, even though F7's backend (timer_impl_hal.c, SHARED with H7) runs
+the dmaGetByTag()/ownership check UNCONDITIONALLY for every channel. This
+script's per-channel dmaopt model does NOT have that bug, confirmed two ways:
+(1) H7 shares the same unconditional-gate backend as F7, so 'every channel's
+own dmaopt is always genuinely consulted' -- which is exactly what this
+script already assumes (it groups by each entry's literal, already-resolved
+dmaopt value, with no dmavar-style indirection or free-ride step to get
+wrong); and (2) empirically, every real H7 USE_DSHOT_DMAR target checked
+assigns each channel of a burst timer a genuinely DISTINCT dmaopt (e.g.
+AXISFLYINGH743PRO's TIM4 CH1-4 use dmaopt 9, 10, 11, 12 -- not a shared
+value), matching the DMAMUX-per-channel-request reality confirmed directly in
+timer_def_stm32h7xx.h (DEF_TIM_DMA__BTCH_TIM4_CH1/CH2/CH3 each reference a
+distinct DMA_REQUEST_TIM4_CHn, unlike F4's genuinely-shared combined-request
+table). The 'same timer + USE_DSHOT_DMAR -> always skip' branch just above is
+consequently DEAD CODE on every current H7 target (verified: zero same-timer
+duplicate-dmaopt groups exist in the current target tree) -- it rests on an
+F4-style shared-request-line mental model that doesn't strictly match H7's
+DMAMUX reality, so if a future H7 target ever DOES give two channels of one
+timer an identical dmaopt, this branch's blanket suppression should be
+revisited with the same per-channel-always-checked reasoning used above,
+rather than trusted at face value.
+
+The TIM4_CH4 has_dma_request() special-case above (NONE unless USE_DSHOT_DMAR
+is defined) is the H7-family equivalent of simulate_pwm_roles.py's
+SILENT_DEAD_MOTOR family split for F7/H7: since H7 never gives a free pass to
+a NONE-resolving channel regardless of its position in a burst timer group,
+this script is right to gate purely on 'does target.h define USE_DSHOT_DMAR',
+with no free-rider-position exception needed (there isn't one on this
+family).
+
 SEVERITY: CERTAIN vs NOTICE
 ============================
 LED strip and ADC are always active whenever their feature is enabled, so a

@@ -69,8 +69,15 @@ claude/.claude/
 # Installation marker (local, per-user)
 claude/.installed
 
-# Email directories (internal communication between roles)
+# Local user data — NEVER track these; contents are per-user project data.
+# Per-directory .gitignore files inside each dir also enforce this.
 claude/*/email/
+claude/local-data/
+# Git worktrees (local)
+tmp-worktrees/
+# Recovery/scratch
+claude_bak/
+rebase-diff.txt
 
 # IDE and editor configs
 .idea/
@@ -115,6 +122,7 @@ iNavFlight.github.io/
 inav-blackbox-log-viewer/
 inav-can/
 inav-configurator/
+inav-sitl-bench/
 /inav/
 inav2/
 inav3/
@@ -137,6 +145,7 @@ prop-fwd.FCStd
 raytools/dma_resolver/analyze_lionbee_hd.mjs
 raytools/inav-pr-build-server/
 raytools/mod_auth_mellon/
+raytools/mellon_patched_with_junk/
 raytools/outlook-email-extractor/
 replace_first.py
 scavanger_wasm/
@@ -152,3 +161,4 @@ claude/locks/*.lock
 
 # Local settings may hold machine-specific config; never rely on global gitignore for this
 .claude/settings.local.json
+.aider*

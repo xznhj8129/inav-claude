@@ -30,15 +30,17 @@ gh pr checks <PR_NUMBER>
 
 ### 1. Fetch PR Information
 
+**Read comments before the diff.** Comments often carry context a diff-only read misses — author clarifications, prior reviewer findings, CI failures, or scope changes since the PR opened. Reading them first avoids re-discovering (or contradicting) ground already covered.
+
 ```bash
 # View PR description and metadata
 gh pr view <PR_NUMBER>
 
+# List all PR comments — read this before the diff
+gh pr view <PR_NUMBER> --comments
+
 # View PR diff
 gh pr diff <PR_NUMBER>
-
-# List all PR comments
-gh pr view <PR_NUMBER> --comments
 ```
 
 ### 2. Checkout PR Code
@@ -147,16 +149,32 @@ gh api repos/iNavFlight/inav-configurator/pulls/<PR_NUMBER>/comments
 
 ## Adding Review Comments
 
+**Note:** `gh pr review` (formal review with an approve/request-changes verdict) is blocked by a repo policy hook for this project — PR reviews must be submitted through the GitHub web interface, not the CLI. Use `gh pr comment` instead to post findings as a regular comment:
+
 ```bash
-# Leave a review comment
-gh pr review <PR_NUMBER> --comment -b "Your comment here"
-
-# Approve PR
-gh pr review <PR_NUMBER> --approve -b "LGTM! Changes look good."
-
-# Request changes
-gh pr review <PR_NUMBER> --request-changes -b "Please address..."
+gh pr comment <PR_NUMBER> --body-file <path-to-drafted-comment.md>
 ```
+
+### Never post without explicit confirmation of the final text
+
+Do not run `gh pr comment` / `gh pr review` until the user has seen and approved the *exact* text being posted — even if they asked at the start of the task for the review to be "posted when done." That earlier instruction authorizes drafting, not auto-publishing; investigation often turns up findings (e.g. a claimed compile failure) that are much more consequential than what was originally scoped, so the wording needs a final human check before it goes out publicly under the user's name. Workflow:
+
+1. Draft the review.
+2. Write it to an easily-edited file in `/tmp` (e.g. `/tmp/pr<NUMBER>-review-draft.md`) — not a deep scratchpad path, and not the user's home directory (that leaves old drafts cluttering it) — so they can revise it directly.
+3. Wait for explicit go-ahead ("post it", "looks good, post") before calling `gh pr comment`.
+4. If the user has since edited the file themselves, post the file's current contents — don't regenerate from memory.
+
+This was learned the hard way on PR #11756 (2026-08-04): a review was posted automatically once finished, based on an earlier "post it when done," and the user had to delete the public comment because they wanted to see the wording first.
+
+### Tone and attribution for AI-drafted reviews
+
+When the findings were produced primarily by AI analysis (not verified independently by the human), lead the comment with a brief attribution line making that clear, and phrase findings as questions for the author to check rather than flat assertions — even for findings you've verified yourself (e.g. by actually reproducing a build failure locally). This applies regardless of confidence level; frame it as "here's what I found, please confirm" not "here's the verdict."
+
+Bad: `## Blocking: X does not compile` / `## Bug: Y is misconfigured`
+
+Good: `## SYNERDUINOH7 — did it actually build for you?` / `## Possible USE_IMU_BMI088 mix-up?`
+
+Example attribution line: *"I took a look at this with an AI-based tool I have. It may well be wrong on any of the points below — please treat it as a set of questions to check rather than a verdict, and correct me if I've misread something."*
 
 ## Common Review Scenarios
 
@@ -223,8 +241,7 @@ git checkout master
 ## Resources
 
 - **GitHub CLI docs:** `gh pr --help`
-- **Project review guidelines:** Check `claude/COMMUNICATION.md` for standards
-- **Recent PR reviews:** See `claude/projects/review-pr*/` for examples
+- **Example past reviews:** `claude/pr-review-firmware-2026-02-28.md` and `claude/pr-review-configurator-2026-02-28.md` — full-batch review reports showing the severity-bucket format used historically
 
 ---
 
@@ -233,5 +250,31 @@ git checkout master
 - **git-workflow** - Checkout PR branches and manage git operations
 - **create-pr** - Create your own pull requests
 - **check-builds** - Check CI build status for PRs under review
+- **check-pr-docs** - Check whether a PR updated documentation where required
+- **pr-scorecard** - Score a single PR's merge-readiness (CI, reviews, testing evidence, maturity, risk)
+- **pr-scorecard-triage** - Walk a batch of open PRs by scorecard, suggesting merge/comment/label/approve
+- **pr-triage** - Triage open PRs for merge readiness and assign milestones
+- **find-symbol** - Jump to a function/struct/variable definition via ctags while reading a diff
+- **communication** - Cross-role message templates, if a review needs to be routed to Manager/Release Manager
 - **run-configurator** - Test configurator PRs locally
 - **build-sitl** - Build and test firmware PRs
+
+## Related Agents
+
+Dispatch these with the Agent tool when a review needs more than the CLI steps above:
+
+- **check-pr-bots** - Fast fetch/format of all bot comments (Qodo, github-actions, etc.) on a PR — good first step before reading the raw diff
+- **inav-code-review** - Deep, severity-categorized code-quality/safety review of C99/JS changes
+- **inav-architecture** - Locates relevant files/subsystems fast when the PR touches an unfamiliar area
+- **target-developer** - target.h/DMA/timer/pin-mapping/flash-overflow expert — use for any PR touching `src/main/target/*` (this caught a real DMA collision and confirmed a false-positive bot flag during the PR #11756 review)
+- **inav-builder** - The only sanctioned way to actually build firmware/configurator to verify a suspected compile issue — never run cmake/make/npm directly
+- **test-engineer** - Reproduce bugs or write/run tests against the PR's changes (does not fix code)
+
+**Both `check-pr-bots` and `inav-code-review` link back to this skill for the posting-tone/confirmation rules below — if you're using them standalone outside a full `/pr-review` pass, still follow "Never post without explicit confirmation" and "Tone and attribution for AI-drafted reviews" before publishing anything they find.**
+
+## Related Documentation
+
+- `claude/developer/guides/CRITICAL-BEFORE-PR.md` - Pre-PR checklist; useful context for judging whether someone else's PR is actually ready
+- `claude/developer/guides/CRITICAL-BEFORE-MERGE.md` - Merge-direction rules and the GitHub web conflict-resolver trap — read before recommending or performing a merge
+- `claude/developer/guides/coding-standards.md` - Primary coding standards referenced by `inav-code-review`
+- `claude/developer/guides/root-cause-analysis.md` - Useful when a review finding needs deeper investigation

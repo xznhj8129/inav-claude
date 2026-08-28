@@ -78,7 +78,6 @@ claude/
 │   └── email/           - Email communication
 │       ├── inbox/       - Reports from developer
 │       ├── inbox-archive/ - Archived reports
-│       ├── outbox/      - Draft messages
 │       └── sent/        - Tasks sent to developer
 │
 ├── developer/            - Developer files
@@ -87,7 +86,6 @@ claude/
 │   └── email/           - Email communication
 │       ├── inbox/       - Tasks from manager
 │       ├── inbox-archive/ - Archived assignments
-│       ├── outbox/      - Draft messages
 │       └── sent/        - Reports to manager
 │
 ├── release-manager/      - Release manager files
@@ -96,7 +94,6 @@ claude/
 │   └── email/           - Email communication
 │       ├── inbox/       - Incoming messages
 │       ├── inbox-archive/ - Archived messages
-│       ├── outbox/      - Draft messages
 │       └── sent/        - Outgoing messages
 │
 ├── projects/             - Active project tracking (manager-owned)
@@ -211,31 +208,35 @@ cd inav-configurator && npm test
 
 ## Initial Setup
 
-After cloning this repository, you need to update the settings files with your actual home directory path.
-
-**Required:** Replace `/home/user/` with your actual home directory in these files:
-- `.claude/settings.json` - Hook script paths
-- `.claude/settings.local.json` - Permission rules (if it exists)
+After cloning this repository, run the installer before doing anything
+else — see **[`claude/INSTALL.md`](../claude/INSTALL.md)** for full
+details. Short version:
 
 ```bash
-# Example for Linux/macOS:
-sed -i "s|/home/user/|$HOME/|g" .claude/settings.json
-sed -i "s|/home/user/|$HOME/|g" .claude/settings.local.json 2>/dev/null || true
+./claude/install.sh
 ```
 
-The hook scripts need absolute paths to work correctly with Claude Code.
+It auto-detects whether this is a fresh clone or an already-working
+installation and handles settings paths, projects/emails, and the
+`/home/user/` → your home directory substitution accordingly. Safe to
+re-run — it won't touch existing data on a working installation.
 
 ---
 
 ## Getting Started
 
-1. **Determine your role** (Manager, Developer, or Release Manager)
-2. **Read your role-specific README:**
+1. **First time in this repo?** Run `claude/install.sh` — see
+   [`claude/INSTALL.md`](../claude/INSTALL.md). (Root `CLAUDE.md`'s
+   MANDATORY FIRST ACTION checks for this automatically.)
+2. **Determine your role** (Manager, Developer, Release Manager, or
+   Security Analyst)
+3. **Read your role-specific README:**
    - Manager: [`claude/manager/README.md`](manager/README.md)
    - Developer: [`claude/developer/README.md`](developer/README.md)
    - Release Manager: [`claude/release-manager/README.md`](release-manager/README.md)
-3. Tell your human which role you have detected and ask them if you should read your inbox now
-4. **Start working** according to your role
+   - Security Analyst: [`claude/security-analyst/README.md`](security-analyst/README.md)
+4. Tell your human which role you have detected and ask them if you should read your inbox now
+5. **Start working** according to your role
 
 ---
 

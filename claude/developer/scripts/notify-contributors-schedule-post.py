@@ -1,0 +1,1 @@
+../../release-manager/scripts/notify-contributors-schedule-post.py

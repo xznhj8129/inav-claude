@@ -39,6 +39,11 @@
 **Usage:** `./scripts/check_target_invariants.py <inav_checkout_root> [--target TARGETNAME]`
 **Created:** 2026-07-07. All three checks: 0 findings across 233 targets -- pure regression guards, not backlog.
 
+### simulate_pwm_roles.py
+**Purpose:** Deterministic simulation of INAV's motor/servo timer role-resolution algorithm (`pwmClaimTimer`/`pwmEnsureEnoughtMotors`/`pwmBuildTimerOutputList` in `drivers/pwm_mapping.c`), plus the two hazards that ride on top of it: a MOTOR-resolved, genuinely-initialized output with *no DMA request line at all* for its (timer, channel) on this MCU (silent DSHOT failure -- `pwmMotorConfig()` reports success anyway), and two genuinely-live DMA users (DSHOT motors and/or LED strip) whose only DMA option resolves to the same (controller, stream). Unlike hand-tracing, this actually runs the C algorithm's exact mutation order -- including the fact that `pwmClaimTimer()` force-overwrites `usageFlags` on every `timerHardware[]` entry sharing a physical timer, so a channel's own declared `TIM_USE_SERVO` does NOT protect it from being dragged into MOTOR role by a sibling on the same timer. Supports F4/F7/H7/AT32 (auto-detected from CMakeLists.txt); H7's DMA-stream addressing reuses `check_dma_conflicts.py`'s tables directly rather than duplicating them.
+**Usage:** `./scripts/simulate_pwm_roles.py <inav_checkout_root> --target NAME [--motor-count N | --sweep MIN:MAX] [--servo-count N] [--no-dshot] [--no-led-strip]` -- omit both `--motor-count` and `--sweep` to sweep the full plausible range and print only the hazards found at each count. `./scripts/simulate_pwm_roles.py --selftest <inav_checkout_root>` runs the built-in regression cases.
+**Created:** 2026-08-14 -- after a session hand-traced this exact algorithm for DAKEFPVF405WING and got it wrong twice in one conversation (including presenting an unachievable "S2 solo DSHOT + S3 working servo" recommendation as verified). Validated against DAKEFPVF405WING's shipped and in-session-edited target.c as regression cases (see the script's `--selftest`), and smoke-tested against all 213 non-SITL targets in the tree with zero crashes and zero unresolved DMA-table lookups.
+
 ### run_target_checks.py
 **Purpose:** Driver that runs all of the above checks in one pass with consistent section headers. Run this before opening a PR for a new/modified target, or to verify a fix for any of these bug classes actually resolved it.
 **Usage:** `./scripts/run_target_checks.py <inav_checkout_root> [--target TARGETNAME]`
@@ -94,3 +99,11 @@ wiring matched several other H7 targets exactly) came back clean, which ruled ou
 mapping but could not rule out this target's UART8 pins being an un-updated leftover from
 whatever target it was based on -- exactly the failure mode a continuity or schematic check
 against the real board is needed for.
+
+### Avoid UART1/UART3 for the default receiver or GPS port
+Some vendor reference designs (SpeedyBee in particular) default `SERIALRX_UART`/GPS wiring to
+UART1 or UART3. Don't copy that as a pattern to emulate when authoring or reviewing a new target
+-- a receiver or GPS connected there can interfere with flashing over the same UART. Prefer
+UART2/UART4/etc. for these roles unless the board's physical wiring leaves no other option.
+Raised 2026-08-15 during DAKEFPVF405WING bring-up, where a PR author's update moved
+`SERIALRX_UART`/added `GPS_UART` off UART1/UART3 onto UART2/UART4 for exactly this reason.

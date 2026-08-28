@@ -219,6 +219,12 @@ V ∝ 1/√CL ∝ 1/√α ∝ 1/√(θ - γ)
 - Mission planning and energy management
 - Flight dynamics modeling
 
+**Complementary scenario:** this file covers pitch's effect on airspeed at
+*constant throttle*. For the reverse — throttle's compensation for pitch to
+hold *constant airspeed* (the `nav_fw_pitch2thr` setting) — see
+`power-flight-path-angle.md` in this directory and
+`inav/docs/development/fixed-wing-pitch2thr-tuning.md` upstream.
+
 ---
 
 *Created: 2026-01-18*

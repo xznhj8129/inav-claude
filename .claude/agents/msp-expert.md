@@ -60,7 +60,7 @@ You are an MSP (MultiWii Serial Protocol) expert for the INAV flight controller 
 | `inav/docs/development/msp/msp_ref.md` | Generated human-readable reference |
 | `inav/docs/development/msp/inav_enums_ref.md` | Enum definitions used in messages |
 | `inav/docs/development/msp/format.md` | JSON schema format documentation |
-| `claude/developer/docs/msp/msp-message-routing-architecture.md` |  how messages are handled in `inav/src/main/fc/fc_msp.c` and should be added there
+| `inav/docs/development/msp/msp-message-routing-architecture.md` | How messages are handled in `inav/src/main/fc/fc_msp.c`
 
 ### Python Library (mspapi2)
 
@@ -279,4 +279,6 @@ Use the Edit tool to append entries. Format: `- **Brief title**: One-sentence in
 
 ### Lessons
 
+- **`sbufReadU8`/`sbufReadU16`/`sbufReadU32` are bounds-checked but not self-rejecting** — each checks `ptr >= end` before reading; on an out-of-bounds call it sets the sticky `sbuf_t.overrun` bool and returns 0 instead of reading past the buffer (repeated calls after that keep returning 0 safely, `ptr` never advances past `end`). This only prevents memory-unsafety — it does NOT make a handler correctly reject a too-short frame. A handler using these plain (non-`Safe`) reads must still either validate `dataSize` up front against what it's about to read, or check `if (src->overrun)` once after its read sequence and return `MSP_RESULT_ERROR` if set (see `MSP2_INAV_SET_AUX_RC`/`MSP_OSD_CHAR_WRITE` in `fc_msp.c` for the pattern). The `*Safe` variants (`sbufReadU8Safe` etc.) are a separate, independent mechanism that checks `sbufBytesRemaining()` and returns a bool per-call instead.
+- **`sbufReadData`/`sbufReadDataSafe` do NOT advance the buffer's read pointer** — unlike `sbufReadU8`/`sbufReadU16`/`sbufReadU32`, which do (`common/streambuf.c`). Calling `sbufReadDataSafe` twice in a row on the same `sbuf_t*` (e.g. a bulk struct read followed by a second read for a trailing optional field) makes the second call silently re-read from the same starting offset as the first, not from where the first call left off. Chain reads either with a single `sbufReadDataSafe` call sized to cover everything, or insert an explicit `sbufAdvance(src, n)` between calls (established idiom, also used in `telemetry/msp_shared.c` and elsewhere in `fc_msp.c`).
 <!-- Add new lessons above this line -->

@@ -84,7 +84,7 @@ Start with this template:
 12. Default features
 13. PWM outputs
 
-See `common-issues.md` for common mistakes to avoid.
+See `inav/docs/development/targets/common-issues.md` for common mistakes to avoid.
 
 ## Step 4: Pin Mapping from Schematic
 
@@ -179,7 +179,7 @@ Use inav-builder agent to build NEWTARGETNAME
 
 **Fix any build errors:**
 - Undefined pins → Check schematic
-- Flash overflow → Remove unnecessary features (see `common-issues.md`)
+- Flash overflow → Remove unnecessary features (see `inav/docs/development/targets/common-issues.md`)
 - DMA conflicts → Use DMA resolver tool
 
 ## Step 8: Test on Hardware
@@ -237,6 +237,6 @@ See `examples/minimal-f722-target/` for a complete minimal target example.
 
 - **overview.md** - Target system architecture
 - **reading-schematics.md** - How to analyze manufacturer KiCad/Altium schematics and build a verified pin map before writing target.h
-- **common-issues.md** - Avoid these mistakes
+- **inav/docs/development/targets/common-issues.md** - Avoid these mistakes
 - **timer-dma-conflicts.md** - Resolve DMA conflicts
 - **troubleshooting-guide.md** - Debug issues systematically

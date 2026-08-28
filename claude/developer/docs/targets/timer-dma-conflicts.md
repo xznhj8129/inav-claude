@@ -80,7 +80,13 @@ DEF_TIM(TIM, CH, PIN, USE, dmaopt, dmavar)
 ```
 
 - **dmaopt (DMA Option):** Which alternate DMA mapping to use (0, 1, 2...)
-- **dmavar:** Usually 0 (legacy, not used on modern targets)
+- **dmavar:** On F4/F7 this selects among a short, fixed list of real alternate DMA
+  mappings (often just 1-2 choices, sometimes none). **On H7 it is not legacy** —
+  `DEF_TIM_DMA_FULL(req)` in `timer_def_stm32h7xx.h` expands to all 16 DMA1/DMA2
+  streams for that same request (H7's DMAMUX can route any request to any stream),
+  so `dmavar` directly picks which of the 16 streams (0-7 = DMA1, 8-15 = DMA2) that
+  channel's own DMA tag nominally points to. It matters for H7 targets too — see
+  "H7-Specific: DMAMUX Ownership Gotchas" below.
 
 ### F405/F411 Example
 
@@ -222,10 +228,48 @@ STM32H7 uses DMAMUX which eliminates most DMA conflicts:
 - Fewer headaches for target developers
 - Conflicts still possible but rare
 
+## H7-Specific: DMAMUX Ownership Gotchas
+
+Found while investigating a single-motor-only DSHOT failure on an H743 target
+(PD15/TIM4_CH4, PR #11632). Two things that look like plausible DMA-stream
+collision candidates on H7 turn out **not** to be, because they don't participate
+in the ownership tracking `impl_timerPWMConfigDMABurst()` (`timer_impl_hal.c`)
+checks via `dmaGetByTag()`/`dmaGetOwner()`:
+
+- **SPI never uses DMA on H7 in INAV.** `bus_spi_hal_ll.c` (used for H7/F7) does
+  all transfers through polled `LL_SPI_TransmitData8()`/`LL_SPI_ReceiveData8()` —
+  no `HAL_SPI_*_DMA`, no `dmaInit()`, no `dmaGetByTag()` anywhere in the file, on
+  any platform. Gyro/OSD/blackbox-flash SPI can never be the "something else has
+  this stream" culprit.
+- **ADC1 is hardcoded to `DMA2_Stream0`** on H7 (`adc_stm32h7xx.c`, `adcHardware[]`
+  table) and configures it via a raw `HAL_DMA_Init()` call — it never calls
+  `dmaGetByTag()`/`dmaInit()`, so it's invisible to the ownership table regardless
+  of which stream it's on. The `ADC1_DMA_STREAM`/`ADC1_DMA_OPT` override pattern
+  that exists for F4/AT32 (`adc_stm32f4xx.c`, `adc_at32f43x.c`) has no H7
+  equivalent — any target.h define of that name on an H7 target is dead code.
+- **`USE_DSHOT_DMAR` burst mode has an ownership-check quirk worth knowing about
+  even though it didn't turn out to be the bug here:** only the *first* channel of
+  a timer to initialize actually claims/uses its DMA stream for the shared burst
+  transfer (`if (!tch->timCtx->dmaBurstRef)` in `timer_impl_hal.c`) — but *every*
+  channel, including ones that will never use their own stream, still runs
+  `dmaGetByTag()` + `dmaGetOwner() != OWNER_FREE` on its own nominal stream first
+  and bails out (silently leaving that one motor unconfigured) if something else
+  already owns it. A stray dmavar collision on a channel that never gets that far
+  (e.g. a servo channel, which doesn't use the DMA path at all) is harmless — only
+  matters if the colliding peripheral actually calls `dmaInit()`.
+- **Practical implication:** on H7, the DMA-conflict search space for a
+  single-motor DSHOT failure is much narrower than F4/F7 — realistically just other
+  *timer* channels (motors/servos/LED strip) that call `dmaInit()`, since SPI and
+  ADC are structurally excluded. If a static read-through of `timerHardware[]`
+  doesn't turn up a real collision, the fault is more likely non-DMA (hardware/pad
+  issue, mixer/output-count logic, or something outside this subsystem) — check
+  for `LOG_ERROR(PWM, "Timer allocation failed for motor %d", idx)` in
+  `pwm_mapping.c` in a real boot log before spending more time on DMA theories.
+
 ## Related Documentation
 
 - **overview.md** - Target system basics
-- **common-issues.md** - See "Timer Configuration" section for real examples
+- **inav/docs/development/targets/common-issues.md** - See "Timer Configuration" section for real examples
 - **creating-targets.md** - Timer setup during target creation
 - **STM32 Reference Manual** - Complete DMA tables
 

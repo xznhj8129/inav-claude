@@ -481,7 +481,7 @@ Internal documentation relevant to architecture:
 **Developer guides:**
 - `claude/developer/README.md` - Section "Firmware Architecture" (lines 250-345)
 - `claude/developer/docs/debugging/gcc-preprocessing-techniques.md` - Debugging compile-time issues
-- `claude/developer/docs/pid-to-servo-computation.md` - Flight control data flow
+- `inav/docs/development/pid-to-servo-computation.md` - Flight control data flow
 
 **INAV documentation:**
 - `inav/docs/Navigation.md` - Navigation system overview

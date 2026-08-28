@@ -38,8 +38,18 @@ blackbox -PEAKS_P
 blackbox -PEAKS_Y
 
 # LEDs
-led 0 0,0::CBE:13
-led 1 1,0::CE:2
+led 0 0,0::CO:2
+led 1 1,0::CO:3
+led 2 2,0:NW:CO:4
+led 3 3,0:NW:CO:5
+led 4 4,0:N:CO:7
+led 5 5,0:N:CO:8
+led 6 6,0:N:CO:9
+led 7 7,0:N:CO:10
+led 8 8,0:N:CO:11
+led 9 9,0:N:CO:12
+led 10 10,0:N:CO:13
+led 11 11,0:N:CO:0
 
 # Modes [aux]
 aux 0 0 0 1500 2100

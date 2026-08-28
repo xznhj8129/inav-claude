@@ -379,7 +379,7 @@ Use `fc-cli.py` for new work - it's more flexible.
 ## USB Debugging
 
 When USB MSC (mass storage) or CDC (serial) modes have issues, see:
-`claude/developer/docs/debugging/usb-msc-debugging.md`
+`inav/docs/development/usb-msc-debugging.md`
 
 Quick commands:
 ```bash
@@ -403,4 +403,4 @@ cat /sys/bus/usb/devices/*/product
 ## References
 
 - Full documentation: `inav/docs/development/Building in Linux.md`
-- USB debugging: `claude/developer/docs/debugging/usb-msc-debugging.md`
+- USB debugging: `inav/docs/development/usb-msc-debugging.md`

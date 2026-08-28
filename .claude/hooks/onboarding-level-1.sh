@@ -17,7 +17,7 @@ ESSENTIAL AGENTS (use these, never the raw commands):
   inav-builder       → ALL firmware / configurator builds
   test-engineer      → write failing test BEFORE fixing the bug
   inav-architecture  → locate code BEFORE using grep
-  email-manager      → all inbox / outbox operations
+  email-manager      → all inbox / send / archive / audit operations
 
 REMINDER: If starting as Developer, check inbox first with the
 email-manager agent. If you want to work on something NOT in

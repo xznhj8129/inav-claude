@@ -9,10 +9,15 @@
 # Usage:
 #   new-branch.sh <repo> <bugfix|feature|breaking> <branch-name> [--dry-run]
 #
-#   repo: inav | inav-configurator | PrivacyLRS
+#   repo: inav | inav2 | inav3 | inav-configurator | PrivacyLRS
+#
+#   inav2/inav3 are separate parallel checkouts of the same inav repo (used
+#   when inav/ is locked by another task) and follow the same inav decision
+#   table below.
 #
 # Examples:
 #   new-branch.sh inav bugfix fix-gps-recovery
+#   new-branch.sh inav2 feature shrink-ledstrip-dma-buffer
 #   new-branch.sh inav-configurator feature add-battery-limit-ui --dry-run
 #   new-branch.sh PrivacyLRS bugfix fix-counter-sync
 
@@ -52,11 +57,18 @@ if [[ "${4:-}" == "--dry-run" ]]; then
 fi
 
 case "$REPO" in
-  inav|inav-configurator|PrivacyLRS) ;;
+  inav|inav2|inav3|inav-configurator|PrivacyLRS) ;;
   *)
-    echo "ERROR: unknown repo '$REPO' (expected inav | inav-configurator | PrivacyLRS)" >&2
+    echo "ERROR: unknown repo '$REPO' (expected inav | inav2 | inav3 | inav-configurator | PrivacyLRS)" >&2
     exit 1
     ;;
+esac
+
+# inav2/inav3 are separate checkouts of the same inav repo — same decision
+# table, different directory.
+DECISION_REPO="$REPO"
+case "$REPO" in
+  inav2|inav3) DECISION_REPO="inav" ;;
 esac
 
 case "$CHANGE_TYPE" in
@@ -82,7 +94,7 @@ REMOTE=""
 BASE=""
 REASON=""
 
-case "$REPO" in
+case "$DECISION_REPO" in
   PrivacyLRS)
     REMOTE="origin"
     BASE="secure_01"

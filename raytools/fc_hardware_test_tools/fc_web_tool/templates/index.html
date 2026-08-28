@@ -354,9 +354,47 @@
                 min-width: 100%;
             }
         }
+
+        #error-toast {
+            display: none;
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: #ff5252;
+            color: #fff;
+            padding: 14px 16px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        #error-toast.visible {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        #error-toast-dismiss {
+            background: rgba(255, 255, 255, 0.25);
+            border: none;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
     </style>
 </head>
 <body>
+    <div id="error-toast">
+        <span id="error-toast-message"></span>
+        <button id="error-toast-dismiss" onclick="dismissErrorToast()">Dismiss</button>
+    </div>
     <div class="container">
         <div class="header">
             <h1>FC Test Tool</h1>
@@ -540,6 +578,10 @@
             addLog(data.message);
         });
 
+        socket.on('connection_error', (data) => {
+            showErrorToast(data.message);
+        });
+
         socket.on('serial_config', (data) => {
             displayPorts(data.ports);
         });
@@ -579,7 +621,9 @@
         });
 
         socket.on('fc_disconnected', () => {
-            addLog('⚠ Flight controller disconnected — command was not applied. Reconnect and try again.');
+            const message = 'Flight controller disconnected — command was not applied. Reconnect and try again.';
+            addLog(`⚠ ${message}`);
+            showErrorToast(message);
         });
 
         socket.on('outputs_data', (data) => {
@@ -683,6 +727,22 @@
             logEl.scrollTop = logEl.scrollHeight;
         }
 
+        let errorToastTimeout = null;
+
+        function showErrorToast(message) {
+            const toast = document.getElementById('error-toast');
+            document.getElementById('error-toast-message').textContent = message;
+            toast.classList.add('visible');
+
+            clearTimeout(errorToastTimeout);
+            errorToastTimeout = setTimeout(dismissErrorToast, 6000);
+        }
+
+        function dismissErrorToast() {
+            document.getElementById('error-toast').classList.remove('visible');
+            clearTimeout(errorToastTimeout);
+        }
+
         function displayPorts(ports) {
             const listEl = document.getElementById('port-list');
             listEl.innerHTML = '';
@@ -735,9 +795,7 @@
         }
 
         function saveSerialConfig() {
-            if (confirm('Save serial configuration and reboot?')) {
-                socket.emit('save_serial_config');
-            }
+            socket.emit('save_serial_config');
         }
 
         function sendTesterCommand(cmd) {
@@ -764,9 +822,7 @@
         }
 
         function saveOutputs() {
-            if (confirm('Save output configuration to EEPROM and reboot the FC?')) {
-                socket.emit('save_outputs');
-            }
+            socket.emit('save_outputs');
         }
 
         function setOutputMode(timerId, mode, clickedBtn) {

@@ -799,4 +799,6 @@ Use the Edit tool to append new entries. Format: `- **Brief title**: One-sentenc
 ### Lessons
 
 - **CLI mode blocks MSP:** If MSP connection fails unexpectedly on a physical FC, a prior test session may have left the port in CLI mode. Send `exit\n` to the serial port or reset the FC before concluding the connection is broken.
+- **In-tree unit tests can drift from source for PG-excluded files:** Files guarded by `#if !defined(SITL_BUILD)` (e.g. `pwm_mapping.c`) can't be linked into host unit tests, so their tests hand-copy the logic inline. When using an existing test like this as a template, diff it against the CURRENT source function (not just skim it) — e.g. `pwm_mapping_beeper_unittest.cc` still reproduced an older, since-superseded version of `timerHardwareOverride()` (missing the `isCanonicalBeeperPad`/PINIO-fallback logic added in later commits), so copying its structure without re-deriving from current source would have produced a test for behavior that no longer exists.
+- **tests are auto-globbed by *_unittest.cc:** No CMakeLists.txt changes needed if you use the existing directory src/test/unit/
 <!-- Add new lessons above this line -->

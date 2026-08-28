@@ -22,7 +22,7 @@ grep "target_stm32" CMakeLists.txt
 3. Remove sensor auto-detection (`USE_BARO_BMP280` instead of `USE_BARO_ALL`)
 4. Add `SKIP_CLI_COMMAND_HELP` (saves 3KB)
 
-See `common-issues.md` → "Flash Size Issues" for details.
+See `inav/docs/development/targets/common-issues.md` → "Flash Size Issues" for details.
 
 ### Pin Already Defined
 
@@ -105,7 +105,7 @@ See `common-issues.md` → "Flash Size Issues" for details.
 - Bus not accessible on hardware (check schematic)
 - Wrong I2C address (use sensor-specific define like `DPS310_I2C_ADDR`)
 
-See `common-issues.md` → "I2C Bus Configuration"
+See `inav/docs/development/targets/common-issues.md` → "I2C Bus Configuration"
 
 ### Motors Not Working
 
@@ -270,7 +270,7 @@ If after systematic debugging you still have issues:
 
 ## Related Documentation
 
-- **common-issues.md** - Catalog of known problems and fixes
+- **inav/docs/development/targets/common-issues.md** - Catalog of known problems and fixes
 - **creating-targets.md** - Step-by-step target creation
 - **timer-dma-conflicts.md** - DMA conflict resolution
 - **overview.md** - Target system architecture

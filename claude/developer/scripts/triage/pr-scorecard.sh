@@ -40,7 +40,8 @@ fi
 # ---------------------------------------------------------------------------
 NOW_TS=$(date +%s)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-CACHE_FILE="${SCRIPT_DIR}/pr-scorecard-history.json"
+CACHE_FILE="$(cd "$SCRIPT_DIR/../../../local-data/triage" 2>/dev/null && pwd)/pr-scorecard-history.json"
+mkdir -p "$(dirname "$CACHE_FILE")"
 CACHE_KEY="${REPO}/${PR_NUMBER}"
 
 if [[ "$FORCE" != "--force" && -f "$CACHE_FILE" ]]; then

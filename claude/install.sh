@@ -61,7 +61,6 @@ create_directories() {
     for role in manager developer release-manager security-analyst; do
         mkdir -p "$role/email/inbox"
         mkdir -p "$role/email/sent"
-        mkdir -p "$role/email/outbox"
         mkdir -p "$role/email/inbox-archive"
     done
 
@@ -86,7 +85,6 @@ clear_active_content() {
     for role in manager developer release-manager security-analyst; do
         rm -rf "$role/email/inbox/"* 2>/dev/null || true
         rm -rf "$role/email/sent/"* 2>/dev/null || true
-        rm -rf "$role/email/outbox/"* 2>/dev/null || true
         rm -rf "$role/email/inbox-archive/"* 2>/dev/null || true
     done
 

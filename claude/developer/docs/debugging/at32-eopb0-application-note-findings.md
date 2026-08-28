@@ -197,7 +197,7 @@ AT32F43x chips are **compatible with STM32 tools** despite being from different 
 
 ## Recovery Information
 
-See `claude/developer/docs/debugging/at32-flash-recovery.md` for:
+See `inav/docs/development/at32-flash-recovery.md` for:
 - STM32CubeProgrammer recovery procedure
 - ST-Link SWD recovery
 - Alternative recovery methods
@@ -289,7 +289,7 @@ Once flash protection is triggered:
    - Files: `system_at32f43x.c`, `startup_at32f435_437.s`
 
 5. **Recovery Documentation**
-   - `claude/developer/docs/debugging/at32-flash-recovery.md`
+   - `inav/docs/development/at32-flash-recovery.md`
 
 ---
 

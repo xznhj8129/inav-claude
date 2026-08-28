@@ -159,7 +159,7 @@ Or reduce sensor support:
 #define USE_BARO_BMP280         // Only this model
 ```
 
-See `common-issues.md` for real examples from git history.
+See `inav/docs/development/targets/common-issues.md` for real examples from git history.
 
 ## Common Target Patterns
 
@@ -189,7 +189,7 @@ Some pins are shared between peripherals:
 #define I2C_DEVICE_2_SHARES_UART3  // Important flag!
 ```
 
-See `common-issues.md` for more resource conflict examples.
+See `inav/docs/development/targets/common-issues.md` for more resource conflict examples.
 
 ## Key Differences Between MCU Families
 
@@ -212,10 +212,10 @@ See `knowledge-base/mcu-families/` for detailed MCU documentation.
 ## Related Documentation
 
 ### Core Guides
-- **common-issues.md** - Catalog of target problems and fixes with git examples
+- **inav/docs/development/targets/common-issues.md** - Catalog of target problems and fixes with git examples
 - **creating-targets.md** - Step-by-step guide to create new target
 - **troubleshooting-guide.md** - Debug target build and runtime issues
-- **examples.md** - Detailed walkthrough of real fixes
+- **inav/docs/development/targets/examples.md** - Detailed walkthrough of real fixes
 
 ### Reference Documentation
 - **target-h-reference.md** - Complete target.h syntax and examples

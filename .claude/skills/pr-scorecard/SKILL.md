@@ -36,7 +36,7 @@ Default repo is `iNavFlight/inav`. Use `configurator` for `iNavFlight/inav-confi
 ## Cache Behaviour
 
 Once a PR is scored, the result is stored in
-`claude/developer/scripts/triage/pr-scorecard-history.json`.
+`claude/local-data/triage/pr-scorecard-history.json`.
 
 - Re-running `/pr-scorecard` on the same PR within **14 days** returns the
   cached score immediately without any GitHub API calls.

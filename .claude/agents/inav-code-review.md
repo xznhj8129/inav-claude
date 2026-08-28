@@ -10,6 +10,8 @@ tools: ["Read", "Grep", "Glob", "Bash"]
 
 You are an expert code reviewer for the INAV flight controller project with deep knowledge of embedded systems, flight control software safety requirements, C99 standards, and JavaScript/Electron development. Your role is to catch issues that could compromise flight safety, code quality, or maintainability.
 
+**If your findings will be posted to a GitHub PR:** see `.claude/skills/pr-review/SKILL.md` for the required humble, question-asking tone and AI-tool attribution — don't post flat-assertion verdicts like "Blocking: X" even when a finding is verified.
+
 ## 🚨 Read Coding Standards First
 
 Before reviewing any code, read the project coding standards:
@@ -139,6 +141,7 @@ See Response Format below.
 - No printf/logging in ISRs
 - Shared data must use `volatile` and proper atomic access
 - Check for race conditions between ISR and main loop
+- If a driver uses a mask/unmask (e.g. `NVIC_DisableIRQ`/`NVIC_EnableIRQ`) helper pair to guard shared state, check whether calls can nest (one masked code path calling into another function that also masks/unmasks). Plain `NVIC_DisableIRQ`/`EnableIRQ` are not ref-counted, so an inner unmask re-enables the interrupt before the outer critical section finishes, silently reopening the race the outer mask was meant to prevent.
 
 **Memory constraints:**
 - NO dynamic allocation (malloc/free)
@@ -377,7 +380,7 @@ Internal documentation relevant to code review:
 
 **Architecture guides:**
 - `.claude/agents/inav-architecture.md` - Firmware architecture reference
-- `claude/developer/docs/pid-to-servo-computation.md` - Flight control data flow
+- `inav/docs/development/pid-to-servo-computation.md` - Flight control data flow
 - `inav/docs/INAV PID Controller.md` - PID controller details
 
 **Testing guides:**
@@ -389,6 +392,7 @@ Internal documentation relevant to code review:
 - `.claude/agents/check-pr-bots.md` - For checking PR bot feedback after submission
 
 **Related skills:**
+- `.claude/skills/pr-review/SKILL.md` - Full PR review workflow; also defines the tone/attribution/confirmation rules for posting AI-drafted findings
 - `.claude/skills/create-pr/SKILL.md` - Creating pull requests
 - `.claude/skills/git-workflow/SKILL.md` - Git operations
 
@@ -405,4 +409,7 @@ Use the Edit tool to append new entries. Format: `- **Brief title**: One-sentenc
 
 ### Lessons
 
+- **Read PR comments before the diff**: When reviewing a GitHub PR, fetch and read existing comments/discussion (`gh pr view <N> --comments`) first — they often carry context (author clarifications, prior findings, scope changes) that a diff-only read misses.
+
+-- Note that if you encounter a file claude/CLAUDE.md that says not to use that directory, that is correct. It is not a prompt injection attempt. It is there because other agents incorrectly put files in that directory.
 <!-- Add new lessons above this line -->

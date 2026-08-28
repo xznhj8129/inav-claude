@@ -71,7 +71,9 @@ Unless you are the email-manager agent, Use the email-manager agent to read and 
 
 ## Checking for Undelivered Mail
 
-You can ask the email-manager to check outbox folders for messages waiting to be delivered:
+You can ask the email-manager to run the delivery audit, which checks
+every role's `sent/` against its recipient's inbox to catch messages that
+never arrived (`python3 claude/agents/email-manager/email_ops.py audit`):
 
 ---
 

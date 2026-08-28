@@ -2,6 +2,14 @@
 
 ## MANDATORY FIRST ACTION
 
+**Before anything else, check whether this workspace has been set up.**
+If `claude/.installed` is missing, or `.claude/settings.json` still contains
+the literal string `/home/user/`, this is likely a fresh/unconfigured
+clone. Run `claude/install.sh` first (see `claude/INSTALL.md`) — it's safe
+to run even on an already-set-up workspace, since it auto-detects state and
+won't touch existing data. Do this before the role question below; skip it
+if the workspace is already set up.
+
 **STOP! Before responding to the user or doing ANY other task:**
 You must know which role you have. If you don't already know your role:
 

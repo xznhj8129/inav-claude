@@ -8,7 +8,7 @@ Updated 2025-12-22:
 - Uses -w flag to suppress warnings
 - Filters blank lines with grep
 - Improved progress reporting with counters
-- See: claude/developer/docs/gcc-preprocessing-techniques.md
+- See: claude/developer/docs/debugging/gcc-preprocessing-techniques.md
 
 CRITICAL: After splitting, you MUST add target aliasing for variants!
 See: claude/developer/investigations/target-split/README-target-aliasing.md

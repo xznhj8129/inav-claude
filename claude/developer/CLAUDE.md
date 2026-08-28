@@ -61,17 +61,26 @@ Use the `email-manager` agent to send/receive messages with other roles (Manager
 
 ## Lock Files - IMPORTANT!
 
-**Before starting ANY task that modifies code, you MUST:**
+**Before starting ANY task that modifies code, acquire a lock using
+`claude/locks/lock_manager.py` — never check or write lock files by hand:**
 
-1. **Check for existing lock:** `cat claude/locks/inav-configurator.lock` or `cat claude/locks/inav.lock`
-   - If locked: STOP. Report to manager that the repo is locked.
-2. **Acquire the lock** before beginning work
-3. **Release the lock** when task is complete
+```bash
+REPO=$(python3 claude/locks/lock_manager.py acquire --task <task-name> --branch <branch-name> --type firmware)
+```
 
-**See the start-task skill for detailed lock file procedures:**
+Use `--type configurator` for `inav-configurator/` work. If it exits
+non-zero (everything locked or unexpectedly dirty), STOP and report to the
+manager — don't force an acquisition.
+
+**Release it when the task is complete:**
+```bash
+python3 claude/locks/lock_manager.py release <repo>
+```
+
+See `claude/locks/README.md` for the full design, and the start-task/
+finish-task skills for how locking fits into the full workflow:
 - `.claude/skills/start-task/SKILL.md`
-** and the finish-task skill for how to close out a task
-- .claude/skills/finish-task/SKILL.md
+- `.claude/skills/finish-task/SKILL.md`
 
 
 ## Start Here
@@ -102,7 +111,7 @@ claude/developer/
 ├── work-in-progress/     # Legacy flat working directory (gitignored)
 ├── reports/              # Analysis reports (gitignored)
 ├── archive/              # Completed/old work (gitignored)
-└── inbox/outbox/sent/    # Email directories (gitignored)
+└── email/                # inbox/ | inbox-archive/ | sent/ (gitignored)
 ```
 
 **Key debugging docs:** `docs/debugging/`

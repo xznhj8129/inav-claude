@@ -36,63 +36,32 @@ Determine which repo(s) your task requires:
 - `inav/` - Firmware (C code)
 - `inav-configurator/` - Configurator (JavaScript/Electron)
 
-### 2. Check for Existing Lock
+### 2. Acquire the Lock
+
+**Use `claude/locks/lock_manager.py` — never check or write lock files by
+hand.** It checks for an existing lock, verifies the checkout is actually
+clean (so you never inherit uncommitted changes from a previous task), and
+acquires the lock in one step:
 
 ```bash
-# For firmware work
-cat claude/locks/inav.lock 2>/dev/null && echo "LOCKED - STOP" || echo "Available"
-
-# For configurator work
-cat claude/locks/inav-configurator.lock 2>/dev/null && echo "LOCKED - STOP" || echo "Available"
-```
-
-**If locked:** STOP. Report to manager that the repo is locked. Do not proceed.
-
-You may be able to use inav2/ as your working directory after checking and potentially creating the lock file claude/locks/inav2.lock
-
-
-### 3. Acquire the Lock
-
-```bash
-# For firmware
-cat > claude/locks/inav.lock << EOF
-LOCKED_BY: Developer
-TASK: [task-name-from-assignment]
-LOCKED_AT: $(date '+%Y-%m-%d %H:%M')
-BRANCH: [branch-name]
-SESSION_ID: $CLAUDE_CODE_SESSION_ID
-EOF
-
-use inav.lock for the inav/ directory, inav2.lock for the inav2/ directory, or inav3.lock for the inav3/ directory
+# For firmware — tries inav/, inav2/, inav3/ in order
+REPO=$(python3 claude/locks/lock_manager.py acquire --task <task-name> --branch <branch-name> --type firmware)
 
 # For configurator
-cat > claude/locks/inav-configurator.lock << EOF
-LOCKED_BY: Developer
-TASK: [task-name-from-assignment]
-LOCKED_AT: $(date '+%Y-%m-%d %H:%M')
-BRANCH: [branch-name]
-SESSION_ID: $CLAUDE_CODE_SESSION_ID
-EOF
+REPO=$(python3 claude/locks/lock_manager.py acquire --task <task-name> --branch <branch-name> --type configurator)
 ```
 
+`$REPO` is the checkout name to `cd` into (e.g. `inav2`) — use it for every
+step below.
 
+**If it exits non-zero:** every candidate is either locked by another
+session or has an unexpectedly dirty working tree. STOP. Report to the
+manager. Do not force an acquisition, hand-write a lock file, or `git
+stash`/discard whatever is sitting in a dirty candidate — see
+`claude/locks/README.md` for why (a dirty-but-unlocked checkout may be
+someone else's unfinished, uncommitted work).
 
-### 4. Verify Clean Working Directory
-
-```bash
-# For firmware
-cd inav && git status --porcelain
-
-# For configurator
-cd inav-configurator && git status --porcelain
-```
-
-**If output is not empty:** STOP. There are uncommitted changes. Either:
-- Commit them if they belong to a previous task
-- Stash them: `git stash`
-- Or report to manager for guidance
-
-### 5. Check Out the Correct Branch
+### 3. Check Out the Correct Branch
 
 Check if a branch is specified in the task assignment.
 
@@ -121,7 +90,7 @@ table (including the current temporary `inav/` override) and the manual fallback
 - **PrivacyLRS:** No slashes (e.g., `fix-counter-sync`, `encryption-tests`)
 - **INAV:** Kebab-case (e.g., `fix-telemetry-bug`, `feature-battery-limit`)
 
-### 6. Work in the Project Directory
+### 4. Work in the Project Directory
 
 Task files go in the project's own directory, not a separate workspace:
 
@@ -142,21 +111,18 @@ mkdir -p $P/{notes,tests}     # add pr/ scripts/ artifacts/ as needed
 
 `claude/developer/workspace/` is scratch only. Anything left there with no owning project is reported as an orphan by the audit.
 
-### 7. Confirm Ready
+### 5. Confirm Ready
 
 Verify:
 ```bash
-# Show lock contents
-cat claude/locks/*.lock 2>/dev/null
+# Show lock status for all checkouts
+python3 claude/locks/lock_manager.py status
 
 # Show current branch
 git branch --show-current
-
-# Confirm clean
-git status --porcelain
 ```
 
-### 8. Write a Failing Test First (test-engineer agent)
+### 6. Write a Failing Test First (test-engineer agent)
 
 **Before writing any implementation code**, have the test-engineer agent write
 a test that reproduces the issue and currently fails:
@@ -185,14 +151,11 @@ begin implementing the task.
 ## Example: Starting a Configurator Task
 
 ```bash
-# 1. Check lock
-cat claude/locks/inav-configurator.lock 2>/dev/null || echo "Available"
+# 1. Acquire lock
+REPO=$(python3 claude/locks/lock_manager.py acquire --task fix-decompiler-condition-numbers --branch transpiler_clean_copy --type configurator)
 
-# 2. Check clean
-cd inav-configurator
-git status --porcelain
-
-# 3. Checkout branch (existing)
+# 2. Checkout branch (existing)
+cd "$REPO"
 git checkout transpiler_clean_copy
 
 # 4. Acquire lock
@@ -206,17 +169,19 @@ EOF
 # 5. Create project subdirs
 mkdir -p claude/projects/active/fix-decompiler-condition-numbers/{notes,tests}
 
-# 6. Ready to work!
+# 4. Ready to work!
 ```
 
 ## When Task is Complete
 
 Remember to release the lock:
 ```bash
-rm claude/locks/inav.lock
-# or
-rm claude/locks/inav-configurator.lock
+python3 claude/locks/lock_manager.py release <inav|inav2|inav3|inav-configurator>
 ```
+
+It reports any uncommitted/untracked files left in the checkout — clean
+those up (e.g. leftover `build_*` directories) so the next task can pick it
+up automatically.
 
 Include in your completion report: "Released <repo>.lock"
 
@@ -234,8 +199,8 @@ mkdir -p claude/projects/active/<project-name>
 
 ### 2. Create Project Files
 
-- `summary.md` - Project overview, objectives, approach (use template from `claude/projects/README.md`)
-- `todo.md` - Task breakdown (use template from `claude/projects/README.md`)
+- `summary.md` - Project overview, objectives, approach (use template from `claude/manager/projects/README.md`)
+- `todo.md` - Task breakdown (use template from `claude/manager/projects/README.md`)
 - `MANIFEST.md` - **Mandatory.** Index of everything the project owns: files, git branches, upstream PRs, mail paths, memory slugs, external references
 
 ### 3. Add to INDEX.md
