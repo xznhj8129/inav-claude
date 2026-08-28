@@ -2,16 +2,13 @@
 
 This file tracks **active** projects only (TODO, IN PROGRESS, BACKBURNER, BLOCKED).
 
-**Last Updated:** 2026-08-26
+**Last Updated:** 2026-08-28
 **Active:** 3 | **Backburner:** 0 | **Blocked:** 0
 
-> **Completed projects:** See [completed/INDEX.md](completed/INDEX.md) — this archive is inherited from the previous owner (sensei-hacker) and predates this checkout.
+> **Completed projects:** See [completed/INDEX.md](completed/INDEX.md). Empty as of 2026-08-28 — the previous owner's archive was dropped when this checkout took over.
 > **Blocked projects:** See `blocked/` directory
 >
-> **When completing a project:**
-> 1. Move directory from `active/` to `completed/`
-> 2. Remove entry from this file
-> 3. Add entry to `completed/INDEX.md`
+> **When completing a project:** `python3 claude/manager/scripts/project_ops.py complete <name>` — it moves the directory and updates both indexes atomically. Doing it by hand drifts.
 >
 > **When blocking a project:**
 > 1. Move directory from `active/` to `blocked/`

@@ -62,6 +62,31 @@ def write_file(path, content):
         f.write(content)
 
 
+COMPLETED_INDEX_TEMPLATE = """# Completed Projects
+
+Archive of completed and cancelled projects.
+
+**Last Updated:** {today}
+**Total Completed:** 0
+**Total Cancelled:** 0
+
+---
+"""
+
+
+def read_completed_index():
+    """Read completed/INDEX.md, creating the empty archive on first use.
+
+    claude/projects/ is per-user local data, so a checkout that has not
+    completed anything yet has no archive to read.
+    """
+    if not COMPLETED_INDEX_PATH.exists():
+        COMPLETED_INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
+        write_file(COMPLETED_INDEX_PATH,
+                   COMPLETED_INDEX_TEMPLATE.format(today=date.today().isoformat()))
+    return read_file(COMPLETED_INDEX_PATH)
+
+
 def find_entry_bounds(content, project_name):
     """Find the start and end of a project entry in INDEX.md.
 
@@ -199,7 +224,7 @@ def update_index_counts(index_path):
 def add_entry_to_completed_index(project_name, summary_line, project_type=None,
                                   priority=None, pr_info=None):
     """Add a concise entry to completed/INDEX.md."""
-    content = read_file(COMPLETED_INDEX_PATH)
+    content = read_completed_index()
 
     # Build the entry
     today = date.today().isoformat()
@@ -224,7 +249,7 @@ def add_entry_to_completed_index(project_name, summary_line, project_type=None,
 
 def add_cancelled_to_completed_index(project_name, reason):
     """Add a cancelled entry to completed/INDEX.md."""
-    content = read_file(COMPLETED_INDEX_PATH)
+    content = read_completed_index()
 
     today = date.today().isoformat()
     entry = f"\n### ❌ {project_name} ({today})\n\n"
@@ -541,7 +566,7 @@ def cmd_complete(project_name):
         print(f"  Not found in INDEX.md (nothing to remove)")
 
     # 4. Check if already in completed INDEX
-    completed_content = read_file(COMPLETED_INDEX_PATH)
+    completed_content = read_completed_index()
     if re.search(r'^### ✅ ' + re.escape(project_name), completed_content, re.MULTILINE):
         print(f"  Already in completed/INDEX.md")
     else:
@@ -590,7 +615,7 @@ def cmd_cancel(project_name, reason=None):
         print(f"  Not found in INDEX.md (nothing to remove)")
 
     # 3. Add to completed INDEX as cancelled
-    completed_content = read_file(COMPLETED_INDEX_PATH)
+    completed_content = read_completed_index()
     if re.search(r'^### ❌ ' + re.escape(project_name), completed_content, re.MULTILINE):
         print(f"  Already in completed/INDEX.md")
     else:
@@ -744,7 +769,7 @@ def cmd_audit(fix=False, dry_run=False, force=False):
         index_projects[name] = status
 
     # Parse completed INDEX
-    completed_content = read_file(COMPLETED_INDEX_PATH)
+    completed_content = read_completed_index()
     completed_indexed = set()
     for match in re.finditer(r'^### [✅❌] (.+?)(?:\s*\(.*\))?\s*$', completed_content, re.MULTILINE):
         completed_indexed.add(match.group(1))
