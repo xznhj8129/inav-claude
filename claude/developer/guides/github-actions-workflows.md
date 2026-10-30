@@ -26,6 +26,10 @@ and mixing this up silently breaks a feature without any error:
   branch to a `push: branches:` list on `master` only affected pushes to
   `master`; `maintenance-10.x` kept running its own stale copy that didn't
   list itself, so pushes there never fired the workflow at all, for weeks.
+- **`pull_request_target`**: runs the copy of the workflow on the PR's
+  **base branch** (the merge target), not the PR head, so it only fires for
+  PRs targeting a branch that already contains the file. A cleanup workflow
+  present only on `maintenance-10.x` won't run for PRs targeting `release/9.1`.
 
 **Rule of thumb:** for a `workflow_run`-triggered feature split across
 multiple files, figure out which of those files are `push`/`workflow_call`
@@ -77,6 +81,37 @@ failing on a stale token. If you only care about one job's outcome, query it
 directly instead: `gh api repos/{repo}/actions/runs/{run_id}/jobs --jq
 '.jobs[] | select(.name == "<job name>") | .conclusion'` (note reusable-
 workflow job names are prefixed `"<caller job name> / <callee job id>"`).
+
+## Two different workflow *files* can share the same `name:`, and `workflow_run` can't tell them apart
+
+A `workflow_run` listener matches on the triggering workflow's `name:` field,
+not its file path. Nothing stops two separate `.yml` files from declaring the
+identical `name:` — a common intentional pattern for satisfying one required
+branch-protection check with either a real, expensive workflow (gated by
+`paths:`) or a cheap stub (gated by the exact `paths-ignore:` complement),
+so exactly one of them runs per PR. But a `workflow_run` listener gated only
+on `if: github.event.workflow_run.name == '<Name>'` fires for *either* one,
+even though the stub never produces the jobs/artifacts the listener expects
+— it isn't an unrelated failing job dragging down `conclusion` (see the
+section above), it's a wholly different, much smaller workflow silently
+substituting for the real one, still reporting overall `conclusion: success`.
+Found via `gh api repos/{repo}/actions/runs/{run_id} --jq
+'{workflow_id, path, name}'` — two runs with the identical reported `name`
+had different `path`/`workflow_id`. Disambiguate by checking for the
+specific job/artifact you actually need (same fix as the aggregate-conclusion
+gotcha), or gate on `workflow_id` directly if the two files' identity is
+otherwise indistinguishable.
+
+## `run:` steps are `bash -e` — test scripts that way
+
+A `run:` step with no `shell:` key executes as `bash -e {0}`, so `errexit` is on
+even if the script only sets `set -uo pipefail`. Any bare failing command
+(e.g. `git merge --abort` with no merge in progress, a failed `gh pr create`)
+kills the script, skipping later cleanup/fallbacks. When a script is meant to
+handle failures itself: `set +e`, `|| true` / explicit `|| { rc=1; return; }`,
+and `exit $rc` at the end. Extract the block and run it with `bash -e -c` against
+scratch repos and a stubbed `gh` (put the stub's echo on stderr — stdout is
+captured by `$(gh ...)`). Testing with plain `bash -c` hides this class of bug.
 
 ## Debugging technique
 

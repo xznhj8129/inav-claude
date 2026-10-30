@@ -1,5 +1,7 @@
 # ⚠️ CRITICAL CHECKLIST - Read Before Testing
 
+> **Workflow:** steps 5, 8 of 17 → `WORKFLOW.md`.
+
 **Use this checklist when testing code changes:**
 
 ## Testing Philosophy
@@ -13,6 +15,31 @@
 3. **Finally:** Run the test again (test should PASS)
 
 **Why:** You can't verify a fix if you can't reproduce the problem.
+
+**For configurator/UI-only changes with no unit-testable seam** (wizard flows, save
+dialogs, rendering), drive an already-running Configurator — debug mode, connected to a
+test FC — via CDP (Chrome DevTools Protocol) or similar: open the tab → trigger the
+action → verify the result persisted (reconnect, or check the file on disk). If you can't
+drive it, ask the user for manual assistance. This check is mandatory before PR. Running
+the existing test suite is a *regression* check, not the reproduction.
+
+**Don't bake a frozen copy of the old/buggy code into the permanent test suite.** Reproducing
+the bug (red → green) is a one-time authoring-time step — do it manually (e.g. temporarily
+revert the fix, or hand-copy the old logic into a scratch script) to confirm the test would
+have failed before the fix, then discard that scaffolding. The test that ships and runs on
+every build should only ever exercise the real, current production code and assert on
+*behavior* — never reconstruct a historical "buggy copy" as permanent CI machinery just to
+prove the test is non-vacuous. A test that keeps a frozen old implementation around to diff
+against is really testing "the code hasn't changed," not the behavior it claims to cover.
+
+**Absence of evidence is not evidence of absence.** If a live/CDP reproduction attempt
+sees no symptom (e.g. a callback you expected to fire didn't), that is consistent with
+"the bug isn't there" OR with "this test script never actually touched the app's live
+state" (wrong module instance from a fresh `import()`, a variable reset by other code, a
+click that didn't register) — you cannot tell which without independent, positive
+evidence that the test really executed against the live app (a screenshot of the actual
+UI transition, a visible state change, a marker value read back). Don't report a fix as
+verified, or a bug as absent, on a negative result alone.
 
 Use `test-engineer` agent:
 ```
@@ -101,29 +128,33 @@ Where a test file may be useful in the future for other issues, save it in your 
 
 ---
 
-## Self-Improvement: Lessons Learned
+## Self-Improvement: Lessons
 
-When you discover something important about TESTING APPROACHES that will likely help in future sessions, add it to this section. Only add insights that are:
-- **Reusable** - will apply to future testing tasks, not one-off situations
-- **About testing** - test-first approach, debugging, reproduction, validation
-- **Concise** - one line per lesson
+Add concise, actionable one-liners (see `guides/README.md` Capture Rubric). State the
+rule, not the story. Reference facts (SITL/MSP quirks) go at the bottom.
 
-Use the Edit tool to append new entries. Format: `- **Brief title**: One-sentence insight`
+#### Testing Methodology
 
-### Lessons
+- **A "rewrite real source, run it" test goes stale when the target gains a new import**: on `ERR_MODULE_NOT_FOUND`, check whether the target file grew an import the test's rewrite rules don't know, before blaming the test/env.
+- **`$TMPDIR` here resolves inside the repo tree, not `/tmp`**: for tests needing an isolated git repo, make the fixture a real `git init`'d repo (with a commit) or force `/tmp`.
+- **Native OS dialogs can't be tested via Chrome DevTools MCP**: `showSaveDialog`/`showOpenDialog` are GTK/native — test those manually.
+- **A background test-engineer agent can silently stall on an unapproved permission prompt**: zero progress across several polls on a quick step = suspect a stuck prompt, not a slow build.
+- **INAV `unit_test()` CMake requires a sibling `.h` for every `depends` entry**: a `.c` whose header lives in vendored `lib/` must be wired via `extra_sources`, not `depends`.
+- **Verify JS mirrors of firmware algorithms with a diff harness, not by hand**: drive the real JS module and diff against the C model (harness at `claude/agents/target-developer/scripts/compare-js-c/`).
+- **A hand-copied reproduction is a last-ditch fallback, not the default**: first extract the logic into a dependency-free `.c`/`.h` and link the real file into the test; hand-copy only when that's impractical — and a hand-copy still beats no test.
 
-- **INAV debug mode enum offset**: debug.h enum values start at NONE=0; RATE_DYNAMICS=18 (not 17 as often assumed) because AUTOTUNE=17 precedes it - always count from the enum definition, not from memory.
-- **SITL arming requires sensors-calibrated state**: After a fresh SITL reboot, sensors take ~5s to calibrate even with HITL; tests that arm immediately after HITL enable may fail with ARM_SWITCH; use sitl_arm_test.py first to establish a known-good armed state.
-- **SITL failsafe persists across test runs**: Each test run that arms then stops RC leaves SITL in failsafe (ARMING_DISABLED_FAILSAFE_SYSTEM); subsequent arming attempts fail until SITL reboots or failsafe clears; reboot SITL between test runs.
-- **MSP_RC returns axis-reordered channels not raw frame order**: With AETR rcmap [0,1,3,2], MSP_RC[2]=THROTTLE value means the physical input at raw[rcmap[THROTTLE=3]]=raw[2]; send RC frames in physical AETR order [ROLL,PITCH,THROTTLE,YAW,AUX1] not logical axis order.
-- **SITL MSP_REBOOT does execvp restart (same PID)**: In SITL, MSP_REBOOT calls execvp() which replaces the process image but keeps the same PID; in-memory runtime state (ARMED, HITL) should reset but state from the closed EEPROM file persists; for guaranteed clean state use OS-level pkill+relaunch.
-- **$TMPDIR in this environment is inside the repo tree**: `tempfile.mkdtemp()`/`TemporaryDirectory()` resolve under `.../inavflight/tmp`, not `/tmp`. A fake `.git/FETCH_HEAD`-only directory there does NOT stop `git`'s upward directory search (an incomplete `.git` isn't treated as a repo boundary), so `git -C <temp-dir>` silently escapes to the real project repo instead of staying isolated. For tests that need an isolated git repo, either force `/tmp` explicitly or - safer - make the fixture a real `git init`'d repo with an actual commit, which genuinely stops the walk.
-- **ARMING_DISABLED_RC_LINK only updated when DISARMED**: updateArmingStatus() skips all flag checks (including RC_LINK) when ARMED; to observe RC link loss via ARMING_DISABLED_RC_LINK in arming flags, the FC must be NOT ARMED.
-- **Receiver type change needs reboot**: Setting receiver_type=MSP via MSP_SET_RX_CONFIG + EEPROM_WRITE takes effect on the NEXT boot; tests that arm immediately after changing receiver_type will fail with RC_LINK disabled; pre-configure EEPROM before the restart that the test will use.
-- **SITL arm sequence needs 2s pre-arm with AUX1 LOW**: sitl_arm_test.py's proven pattern: send AUX1 LOW for 2 seconds (not 0.6s) while refreshing HITL every 0.1s; this clears ARM_SWITCH flag and SENSORS_CALIBRATING before raising AUX1 to arm.
-- **Configurator UI features require manual end-to-end testing**: Unit tests of string/logic are insufficient — the Electron renderer lacks Node.js globals (e.g. `fs` is undefined); always exercise the actual feature in the running app before committing. For save dialogs: open the tab, trigger the action, verify the file on disk.
-- **Native OS dialogs cannot be tested via Chrome DevTools MCP**: `showSaveDialog` / `showOpenDialog` open GTK/native dialogs that no browser automation tool can interact with; these must be tested manually by the user.
-- **A background test-engineer agent needing sandbox-gated commands (e.g. `dangerouslyDisableSandbox` for SITL localhost networking) can silently stall on a permission prompt nobody is present to approve**: repeated `TaskOutput` polls will keep returning the same stale cached transcript with no indication it's blocked, which looks identical to "still running a long build." If a background agent shows zero progress across several polls spanning many minutes on what should be a quick step, suspect a stuck permission prompt before assuming it's just slow.
-- **INAV `unit_test()` CMake requires a sibling `.h` for every `depends` entry**: `src/test/unit/CMakeLists.txt`'s `unit_test()` transforms each `.c` in a test's `depends` to its `.h` and errors if that header doesn't exist. A new `.c` without a sibling header (e.g. `mavlink_helpers.c`, whose header lives in vendored `lib/`) must be wired via the `extra_sources` property instead — same source list, no `.h` transform.
-- **Unbound ELRS receivers auto-enter WiFi AP mode after ~60s without a transmitter signal**: an ELRS RX with no bound/active TX stops answering CRSF UART handshakes (bootloader sync, DEVICE_PING) once it drops into WiFi mode, which looks exactly like a passthrough/transport failure — even a control that previously passed will then return 0 bytes. An FC soft reboot does NOT power-cycle the RX, so the 60s timer keeps running across CLI-exit reboots; for repeatable ELRS passthrough tests, power-cycle the FC/USB between runs (or bind the RX to a live TX) so each attempt starts in a fresh normal-mode window. ELRS Configurator's own "Cannot detect RX target" is often this + a real baud/handshake bug compounding.
+#### SITL / MSP / Hardware Reference Notes
+
+- **INAV debug mode enum starts at NONE=0** (RATE_DYNAMICS=18, not 17) — count from the enum, not memory.
+- **SITL arming needs sensors-calibrated state** (~5s after reboot even with HITL); establish armed state first.
+- **SITL failsafe persists across runs** — reboot SITL between test runs.
+- **MSP_RC returns axis-reordered channels, not raw frame order** — with AETR map [0,1,3,2], send RC frames in physical AETR order, not logical axis order.
+- **SITL MSP_REBOOT execvp-restarts (same PID)** — in-memory state resets but the closed EEPROM file persists; for clean state, pkill+relaunch.
+- **ARMING_DISABLED_RC_LINK only updates when DISARMED** — to observe RC-link loss in flags, the FC must not be armed.
+- **Receiver type change needs reboot** — takes effect next boot.
+- **SITL arm needs 2s pre-arm with AUX1 LOW** (not 0.6s) while refreshing HITL, before raising AUX1.
+- **Unbound ELRS RX auto-enters WiFi AP after ~60s** — power-cycle FC/USB between passthrough tests (soft reboot doesn't reset the RX).
+- **inav-configurator JS/HTML edits need no build/flash** — Electron loads source directly; only build when adding new files.
+- **Verify a sign convention against the variable's real consumer** — `pitch >0` means opposite things in nav target vs estimated attitude.
+
 <!-- Add new lessons above this line -->

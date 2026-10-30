@@ -14,6 +14,9 @@ inav/*
 inav-configurator/*
 !inav-configurator/.gitkeep
 !inav-configurator/**/CLAUDE.md
+inav-configurator2/*
+!inav-configurator2/.gitkeep
+!inav-configurator2/**/CLAUDE.md
 inavwiki/*
 !inavwiki/**/CLAUDE.md
 mspapi2/*
@@ -110,9 +113,6 @@ blackbox-tools-9.0.0-rc1/
 blackbox-tools/
 bluejay-configurator/
 bluejay/
-claude/developer/pr-review-configurator-2603-2026-04-15.md
-claude/pr-review-configurator-2026-02-28.md
-claude/pr-review-firmware-2026-02-28.md
 debugprobe/
 discord_bot/
 eeprom.bin
@@ -122,7 +122,9 @@ iNavFlight.github.io/
 inav-blackbox-log-viewer/
 inav-can/
 inav-configurator/
+inav-configurator2/
 inav-sitl-bench/
+Inav_jsbsim/
 /inav/
 inav2/
 inav3/

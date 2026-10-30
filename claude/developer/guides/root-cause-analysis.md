@@ -244,25 +244,20 @@ When debugging any issue:
 
 ---
 
-## Self-Improvement: Lessons Learned
+## Self-Improvement: Lessons
 
-When you discover something important about ROOT CAUSE ANALYSIS that will help in future sessions, add it to this section. Only add insights that are:
-- **Reusable** - will apply to future debugging, not one-off situations
-- **About methodology** - problem-solving approach, not specific bugs
-- **Concise** - one line per lesson
+Add concise, actionable one-liners (see `guides/README.md` Capture Rubric). State the
+rule, not the story.
 
-Use the Edit tool to append new entries. Format: `- **Brief title**: One-sentence insight`
+- **A build tool's fail-fast can hide N-1 other failures behind the first**: re-run with `-k 0`; check whether newly-visible failures are regressions or pre-existing.
+- **A leaked macro has two failure classes, not one**: already-defined (collision → `#ifndef` guard) vs newly-defined (real behavior change → fix the dependent code); don't guard the latter.
+- **A subagent's "it crashed" verdict is a hypothesis, not a fact** — reproduce with a minimal raw request/response probe before accepting a live-protocol failure diagnosis.
+- **Fixing an implicit-agreement bug can recreate it one layer up** — re-scan new caches/keys/globals for *structural* uniqueness, against real data, not the synthetic repro.
+- **A new wrapper that changes a wrapped API's return shape fails silently** — verify its return contract at runtime against the wrapped API.
+- **A reporter's list of suspect sites is a hypothesis, not the audit scope** — verify the named sites, then ask "what else has this shape?"
+- **A pairing cache goes stale unless intervening input invalidates it** — test non-adjacent variants, not just the adjacent repro that proved the bug.
+- **Trace the code that sets a value before asserting its mechanism** — inference from the symptom is not root cause.
+- **A UI color encodes semantics** — confirm what it means before redefining the condition that drives it.
+- **Trace what runs synchronously before labeling something a "race"** — it can turn out to be deterministic, which changes how confidently you can explain the symptom's reliability.
 
-### Lessons
-
-- **Silent failures are catastrophic** (2026-07-01): A bug that fails silently can hide for months because no one knows it happened. When analyzing bugs, always ask "Why wasn't this detected?" - that often reveals the real problem.
-- **A build tool's fail-fast default can hide N-1 other failures behind the first one** (2026-07-22): `ninja`'s default `-k 1` stops scheduling new work at the first failure, so a "test" job that's been red for a while may only ever have shown you the *first* broken target — fixing it can unmask several more, unrelated, pre-existing failures that were never actually reached. Before assuming a fix makes a suite fully green, re-run with `-k 0` (or equivalent) to see the whole picture, and check whether newly-visible failures are regressions from your change or were already broken (compare against the unmodified base commit) before folding them into your fix's scope.
-- **Macro leaking into a translation unit has two distinct failure classes needing different fixes** (2026-07-22): when a shared header starts exposing production macros to code that didn't expect them, distinguish (a) the macro was *already defined* elsewhere (via `-D` or an earlier header) and now collides — fixable with an `#ifndef` guard, harmless by construction since presence-only flags don't have competing values — from (b) the macro is *newly, singly* defined and legitimately changes compiled behavior (e.g. widens a type, enables a code path referencing unlinked symbols) — an `#ifndef` guard is a no-op here since nothing preceded it, and the real fix has to address the actual behavior change (update dependent code, exclude the enabled path for the affected build, etc). Misdiagnosing (b) as (a) and reaching for a guard wastes a cycle finding out it didn't help.
-
-- **Fix level matters** (2026-07-01): A one-line symptom fix feels fast but leaves the systemic vulnerability. Systemic fixes take longer but prevent unknown future bugs. Prefer systemic fixes when you discover a design gap.
-
-- **Cascading benefits** (2026-07-01): When you fix a systemic issue, improvements affect systems you didn't know were vulnerable. Fixing error handling in the permissions agent revealed that all agents could fail silently.
-- **A fix for an implicit-agreement bug can silently recreate the same bug one layer up** (2026-08-02): When a bug's root cause is "two things silently assume they agree about a key/ordering/value without that agreement being enforced," the fix itself often introduces a *new* implicit-agreement mechanism instead of removing the pattern entirely — e.g. `settings.rb`'s `check_conditions()`/`resolve_types()` disagreed because one was position-independent and one wasn't; the first fix made both position-dependent, but `check_conditions()`'s internal cache was still keyed by condition *string* (a non-unique key across positions), reintroducing the exact same "assumed-unique key that isn't" failure one level up — caught by an automated reviewer, not by the author. After any such fix, explicitly re-scan the new code for the same shape (new caches/keys/globals — are they *structurally* guaranteed unique, or just unique in today's data?) before considering it done, and check against real project data, not just the synthetic repro that proved the original bug.
-
-- **A reporter's list of suspect sites is a hypothesis, not the audit scope** (2026-08-20): auditing the six MSP handlers a security researcher flagged (#11672) found all six correctly bounded, and "no bug found" was very nearly the final answer. The actual defect was in an *adjacent* code path the reporter never listed — `mspProcessSensorCommand` computes the payload size, explicitly discards it (`UNUSED(dataSize)`), and hands a raw pointer to handlers that cast it to a 52-byte packed struct. It surfaced only because a follow-up question ("is there a compile-time way to prevent this class?") forced a look at how *other* code in the same family handles the same problem. When a report names specific locations, verify them, then separately ask "what else has this shape?" — an outside reporter greps for a pattern signature (here, unsafe `sbufRead*` calls) and will systematically miss instances that use a *different* mechanism to commit the same error (here, a struct cast with no reads at all). Reporting the named list clean, without that second pass, is an accurate answer to the wrong question.
 <!-- Add new lessons above this line -->

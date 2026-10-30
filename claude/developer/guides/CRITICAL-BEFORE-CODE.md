@@ -1,5 +1,7 @@
 # ⚠️ CRITICAL CHECKLIST - Read Before Modifying Any Code
 
+> **Workflow:** steps 3, 4, 6 of 17 → `WORKFLOW.md`.
+
 **STOP! Complete this checklist before making ANY code changes:**
 
 **Use a task list tool to track each step as you complete it.**
@@ -12,6 +14,7 @@ has specific rules beyond that default, including: never write
 discovery-narrative comments or docs ("used to be X", "this used to fail
 because Y") — describe only the current state and current rationale; history
 belongs in the commit message, not the code or guide text.
+Comments are for the rare case where the code itself would be confusing — keep them short and skip them entirely when the code is already clear.
 
 ## 1. Acquire a Lock
 
@@ -43,7 +46,14 @@ dirty-checkout sanity check the script runs automatically before handing out
 an unlocked checkout, and what to do if a candidate turns out to be dirty or
 a lock looks stale.
 
-## 3. Create Git Branch
+**Remember:**
+- Hold the lock through the whole push lifecycle (including follow-up fixes); re-acquire before any post-release push.
+- Use the real session id (`--session "$DSH_SESSION_ID"` where `$CLAUDE_CODE_SESSION_ID` is absent), never a placeholder.
+- Preserve deliverables and remove scratch dirs *before* releasing — a released checkout is someone else's from that moment.
+- Adding a parallel checkout dir touches more than `lock_manager.py` (hooks, `new-branch.sh`, permissions yaml, README) — grep the tree for the sibling name.
+- Tell subagents the exact safe path when a lock is held elsewhere — they don't inherit your lock discipline.
+
+## 2. Create Git Branch
 The branch MUST be created off of the correct version branch — never off master.
 
 ```bash
@@ -54,7 +64,14 @@ See `.claude/skills/git-workflow/SKILL.md` ("Creating Branches") for the current
 base-branch decision table (including any active temporary override) and the manual
 fallback if the script can't be used.
 
-## 4. Plan End-User Documentation (If Needed)
+**Remember:**
+- Confirm you're on the correct branch before working — a lock-handed-out checkout may sit on a prior task's branch.
+- Peek at another ref with `git show <ref>:<path>` (read-only); `git checkout <other-ref> -- .` silently reverts local commits ahead of that ref.
+- Harness-only tasks (`.claude/`, `claude/`) commit straight to `master` — branches belong in the project repos.
+- The base-branch table above is the single authority, even when a task email says otherwise.
+- `new-branch.sh` refuses (non-zero, "dirty working tree") when there are uncommitted changes. Create the branch *before* editing; if you forgot, `git stash`, run the script, `git stash pop`. Never commit on, or push `HEAD` from, whatever branch you were left on.
+
+## 3. Plan End-User Documentation (If Needed)
 
 **Evaluate if your planned change needs end-user documentation:**
 
@@ -78,9 +95,10 @@ fallback if the script can't be used.
 
 3. **This draft will be updated later:**
    - After implementation, update the draft to match actual behavior
-   - Then add to `inav/docs/` and/or `inavwiki/` before PR
+   - Then add to `inav/docs/` (technical) and/or `iNavFlight.github.io/` (end-user) before PR
+   - Docs site vs. wiki: `iNavFlight.github.io/` is primary for substantive/new docs; `inavwiki/` links to it rather than duplicating procedure text (see CRITICAL-BEFORE-PR.md)
 
-## 5. Check for Specialized Agents
+## 4. Check for Specialized Agents
 
 **Before starting implementation, check if specialized agents apply:**
 
@@ -114,6 +132,12 @@ fallback if the script can't be used.
 - Use `test-engineer` agent for ALL testing
 - Use `inav-architecture` agent BEFORE searching firmware code
 
+**Remember:**
+- Use `fc-flasher` for hardware flashing, never `dfu-util` directly (STM32H7 fails DFU exit).
+- Tell a lookup agent the exact checkout path when multiple worktrees coexist.
+- `git status`/`git log -- <path>` before "extending" a named script — it may already be done, uncommitted.
+- Tell fresh subagents explicitly to skip CLAUDE.md's role-selection question.
+
 ## 6. Before Searching Firmware Code
 
 **❌ NEVER:** Start with `Grep` or `Explore` on `inav/src/`
@@ -125,7 +149,7 @@ fallback if the script can't be used.
 
 The agent will tell you exactly which files/directories to look at. THEN use Grep/Read on those specific locations.
 
-## 6. Debugging Tools Available
+## 7. Debugging Tools Available
 
 When investigating bugs or understanding code behavior:
 
@@ -141,36 +165,25 @@ See `guides/debugging-guide.md` for detailed usage instructions.
 
 ---
 
-## 7. When committing code
+## 8. When committing code
 1. *Do NOT mention Claude in commit messages* - Do NOT put "Co-Authored-By: Claude Sonnet 4.6" or similar in a commit message
 2. *Read claude/developer/guides/CRITICAL-BEFORE-COMMIT.md*
 
-## Self-Improvement: Lessons Learned
+## Self-Improvement: Lessons
 
-When you discover something important about PRE-CODING SETUP that will likely help in future sessions, add it to this section. Only add insights that are:
-- **Reusable** - will apply to future pre-coding setup, not one-off situations
-- **About setup/preparation** - lock files, branches, agent usage, search strategy
-- **Concise** - one line per lesson
+Add concise, actionable one-liners (see `guides/README.md` Capture Rubric). State the
+rule, not the story.
 
-Use the Edit tool to append new entries. Format: `- **Brief title**: One-sentence insight`
+- **Fix blockers, don't route around them**: if a build fails on an unrelated error, fix that error rather than simulating the linker.
+- **Check for an existing upstream fix first**: `gh pr list`/web-search before implementing from a plan — cherry-pick a better existing fix rather than re-deriving it.
+- **Security-critical code: fewer knobs, shorter functions** — don't add a knob/parameter unless something concrete needs it.
+- **"Live in production" ≠ authorize importing as-is**: evaluate every hunk; flag credentials, no-op auth checks, or always-success endpoints for explicit confirmation.
+- **Verify bot review comments by tracing the code, don't dismiss them** — they're often real, non-obvious bugs.
+- **Verify a doc's "no callers" claim yourself** — a disabled call site still changes remove-vs-implement.
+- **A diagnosis naming one call site may miss a sibling** — grep the file for other reads of the same data before assuming the fix is complete.
+- **`git diff <a> <b> --stat` is the wrong measure for PR retargeting**: use `git log <target>..<branch>` or merge-base — a two-tree diff includes unrelated history.
+- **Build test state via real functions, not hand-fabricated memory** — a test pinned to today's implementation is no better than hashing the file.
+- **"Verify PR N" means test and report on N, not re-implement its diff as your own PR** — review, test, and comment instead.
+- **Verify the bug exists on the assigned base branch before branching** — the base-branch table picks a default by change-type, not by whether the code is there yet. If the buggy code was never backported (e.g. it's only on `maintenance-10.x`, not yet on `release/9.1`), branch from wherever the code actually lives instead.
 
-### Lessons
-
-- **Fix blockers, don't route around them**: If goal X is blocked by small problem Y, fix Y first — don't pivot to complex workarounds (e.g. if a build fails due to an unrelated compile error in another file, fix that error rather than trying to analyze LTO bitcode object files to simulate what the linker would have produced). We build correct solutions, not workarounds.
-- **Always use fc-flasher agent for hardware flashing**: Never invoke `dfu-util` directly. STM32H7 boards silently fail DFU exit with raw dfu-util ("can't detach"), leaving the FC stuck. The fc-flasher agent uses the known-good script that handles all STM32 variants correctly.
-- **Harness-only tasks (`.claude/`, `claude/`) skip branch creation**: A guardrail hook blocks `git checkout -b` in the root `inavflight/` repo — branches belong in the project repos (`inav/`, `inav-configurator/`, etc.). For tasks that only touch harness config/docs, commit straight to `master`, matching existing harness commit history.
--- **Floats must end in `f` to avoid promotion to double**: We don't want to load the double-precision math library by accidentally using 2.0 instead of 2.0f
-- **Check for an existing upstream fix before implementing from a project plan**: Even when a manager-written summary already sketches an implementation, search open upstream PRs touching the same file/symptom (`gh pr list`/`gh api ...pulls` search, or a quick web check of the issue tracker) before writing new code. A pre-written plan can be superseded by someone else's already-tested fix with a cleaner design; cherry-picking that commit (crediting the original author) beats re-deriving a divergent implementation.
-- **Use the real `$CLAUDE_CODE_SESSION_ID` in lock files, not a placeholder string**: writing something like `SESSION_ID: developer-session` instead of the actual env var causes the "is this repo locked by a different session" hook check to false-positive on every subsequent command touching that repo, generating a spurious approval prompt each time. Fix immediately with `Edit` if caught after the fact — don't leave it, since the friction compounds across the whole session.
-- **Comments should label the one non-obvious thing, not explain the code**: e.g. for a regex, a few-word charset/format label (`# accept only base64 encoded input`) beats a multi-line comment justifying why the check exists or cross-referencing the caller. Presume the reader can read code; skip the comment entirely if nothing is opaque.
-- **In security-critical code, prefer fewer configuration knobs and shorter functions over flexibility**: during a setuid TOTP validator rewrite, the user repeatedly cut things back — rejected an env-var override for a path (env vars are attacker-influenced in some contexts and add a second code path to audit), rejected getpwnam()-based path defaults when the real deployment didn't use home directories, and rejected threading an extra out-parameter through a helper when the caller could just check for the condition directly. Stated principle: "complexity is the enemy of security." When writing auth/validation code, default to the fewest inputs, the fewest branches, and functions short enough to read top-to-bottom in one pass — don't add a knob or parameter unless something concrete needs it.
-
-- **"It's live in production" is not authorization to import a change as-is**: when syncing a repo against a diff pulled from a real server, evaluate every hunk on its own merits rather than reproducing it verbatim. Skip commented-out dead code and one-off debugging hacks (a hardcoded email redirect for one account, a send-suppression rule for one address) — they add confusion, not capability. Separately, flag anything that introduces or preserves a live credential, a disabled/no-op auth check, or an endpoint that unconditionally reports success, for explicit user confirmation before merging — regardless of whether it's commented out or actively running. Being real and being safe are different questions.
-
-- **Subagents don't inherit your lock discipline — tell them the safe path explicitly**: an `inav-code-review` run, asked only to review a diff file, went looking for surrounding source context on its own and created a `git worktree`/added a remote directly inside `inav/` while it was locked by a different session's task. No harm resulted (worktree adds are additive; the other session's checked-out branch was untouched), but it was luck, not design. When delegating any agent that might read repo state beyond a supplied diff/file path while a repo lock is held by another session, explicitly tell it which repo/path is safe to touch (e.g. a second clone like `inav2/`) — don't assume it will infer the lock exists or avoid the locked one.
-- **Check `git status`/`git log` on a task's named tool/script file before "extending" it**: a project's assignment email said a script "does not yet model X, needs extending" based on a report written days earlier. The extension already existed, fully implemented with its own self-tests — a prior session had written it but never committed it (the file was still untracked in `git status`). Re-implementing from the stale report would have duplicated real work and likely diverged from it. Five seconds of `git status`/`git log -- <path>` before writing new code in an assigned-but-possibly-already-done tool file would have caught this immediately either way.
-- **Be sure you are on the correct branch before starting work**: a lock-handed-out checkout was already sitting on a branch from a prior, unrelated task (`fix-configurator-ci-macos-arm64-oom`), which turned out to have its own open PR (#2706) for a different fix. A commit went onto it before checking — caught before pushing (`gh pr list --head <branch>` would have caught it sooner), but a checked-out branch being handed to you doesn't mean it's the right one for this task.
-- **A bot review comment (Qodo, CodeRabbit, etc.) deserves the same trace-through-the-code verification as a human's, not a dismissal**: two Qodo comments on an upstream PR claimed (1) a refused MSP write's `callback(false)` gets ignored by existing save-chain callbacks, so the save silently "succeeds" and the FC reboots anyway, and (2) one write code's naming pattern slips past the write-classifier regex. Both were confirmed correct by actually reading the callback chain (`tabs/failsafe.js`'s `savePhaseTwo()` takes no params, ignores the arg) and running the regex against every MSPCodes name in `node -e`. Cheap to verify, and both were real, non-obvious bugs a text-only review would likely have missed.
-- **Tell a lookup agent exactly which checkout to read, especially with multiple worktrees in the repo root**: asked to look up code in `inav2/`, the `msp-expert` agent instead read and reported from an unrelated untracked `inav-pr11756-review/` directory sitting in the repo root, guessing it was "the active working copy" — it happened to contain the same file, so the answer was still correct, but nothing forced that. When several `inav*`/ad hoc review checkouts coexist, state the exact path in the prompt rather than trusting the agent to infer the right one.
-- **Lock manager needs a real session id when `$CLAUDE_CODE_SESSION_ID` is unset**: in harnesses without that var (e.g. DSH), `lock_manager.py acquire` exits non-zero until you pass `--session "$DSH_SESSION_ID"` — the real session identifier, never a placeholder string like `developer-session` (placeholder sessions false-positive the lock-check hook on every write).
 <!-- Add new lessons above this line -->

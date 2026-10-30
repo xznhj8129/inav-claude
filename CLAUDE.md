@@ -123,12 +123,13 @@ See `claude/INSTALL.md` for detailed setup instructions and `claude/examples/` f
 
 ## Repository Overview
 
-This repository contains four main components:
+This repository contains five main components:
 
 1. **inav/** - Flight controller firmware (C/C99, embedded systems)
 2. **inav-configurator/** - Desktop configuration GUI (JavaScript/Electron)
 3. **inavwiki/** - Documentation wiki (Markdown)
-4. **PrivacyLRS/** - Privacy-focused Long Range System (security analysis focus)
+4. **iNavFlight.github.io/** - Docusaurus-based documentation site (primary end-user docs)
+5. **PrivacyLRS/** - Privacy-focused Long Range System (security analysis focus)
 
 INAV is an open-source flight controller firmware with advanced GPS navigation capabilities for multirotors, fixed-wing aircraft, rovers, and boats.
 
@@ -186,6 +187,12 @@ ctags -R --fields=+niazS --extras=+q --exclude=node_modules --exclude=.git --exc
 - Consider writing a short Python script or shell script to help you do tasks involving a large number of items, or involving large files
 
 ---
+
+## Environment Facts
+
+- **`/tmp` is NOT shared with subagents.**  Use $TMPDIR (./tmp) for shared info
+
+
 
 ## Important: Read Your Role-Specific Guide
 

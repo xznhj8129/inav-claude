@@ -349,17 +349,14 @@ Accepting `--theirs` for `msp_messages.json` and `inav_enums.json` silently drop
 
 ---
 
-## Self-Improvement: Lessons Learned
+## Self-Improvement: Lessons
 
-When you discover something important about GIT WORKFLOW that will likely help in future sessions, add it to this section. Only add insights that are:
-- **Reusable** - will apply to future git operations, not one-off situations
-- **About git workflow** - commits, branches, PRs, force push, hooks, amending
-- **Concise** - one line per lesson
+Add concise, actionable one-liners (see `guides/README.md` Capture Rubric). State the
+rule, not the story.
 
-Use the Edit tool to append new entries. Format: `- **Brief title**: One-sentence insight`
+- **Never blindly accept `--ours`/`--theirs`** — diff the discarded side and verify generated/doc files match the merged source.
+- **Regenerate generated docs after merge** (`settings.yaml` → `update_cli_docs.py`; enum headers / `msp_messages.json` → `gen_docs.sh`) — CI catches forgotten regeneration.
+- **Avoid the literal substrings `maintenance`/`master`/`main` in feature branch names** — the push-blocking hook matches them anywhere in the command text, not just the target branch; rename (e.g. `fix-x-10x`) rather than bypass the hook.
+- **A PR's head branch may be based on an old commit** — to measure or test only the PR's own change (flash size, behavior), apply `git diff <base>...<pr-branch> -- src/main | git apply` onto the current base; building the PR branch itself mixes in unrelated commits (a "−876 B" result turned out to be +96 B).
 
-### Lessons
-
-- **Never blindly accept --ours/--theirs**: Always diff the discarded side and verify auto-generated/doc files match the merged source — see "Resolving Merge Conflicts" section above.
-- **Regenerate generated docs after merge**: `settings.yaml` → `update_cli_docs.py`; enum headers → `gen_docs.sh`; `msp_messages.json` → `gen_docs.sh` — CI catches forgotten regeneration.
 <!-- Add new lessons above this line -->

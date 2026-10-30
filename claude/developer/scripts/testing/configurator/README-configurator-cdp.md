@@ -1,8 +1,13 @@
-# Configurator CDP Testing Script
+# Configurator CDP Testing Scripts
 
 ## Overview
 
-`configurator_cdp_test.py` - Comprehensive test script for verifying Chrome DevTools Protocol connection to INAV Configurator.
+Three scripts here cover Chrome DevTools Protocol (CDP) access to INAV Configurator:
+
+- `configurator_cdp_test.py` - Comprehensive test script for verifying the CDP connection to INAV Configurator works.
+- `tab_sweep_cdp.py` - Sweeps connected tabs for console errors (post-ES6-module-merge regression check).
+- `cdp_eval.mjs` - Minimal zero-dependency helper that evaluates a single JS expression in the renderer and prints the JSON result.
+- `verify_cli_lock_write_guard.mjs` - Verifies a "dropped MSP write" completion-callback guard (e.g. `guardMspCallback()`) on real hardware: requires the real CLI tab already entered (genuinely locks the MSP queue), then proves via an unwrapped `MSP.send_message()` probe that the drop condition is really firing before trusting that the guarded call's callback silence means the fix works. See its header comment for full usage and a `--help` flag.
 
 ## Purpose
 
@@ -28,7 +33,7 @@ Tests that the configurator's CDP debugging interface is working correctly. This
 ## Usage
 
 ```bash
-python3 claude/developer/scripts/testing/configurator_cdp_test.py
+python3 claude/developer/scripts/testing/configurator/configurator_cdp_test.py
 ```
 
 ## What It Tests
@@ -58,6 +63,54 @@ The script performs 5 comprehensive tests:
    - Reads button text
    - Verifies text content access
    - Used for i18n testing
+
+## cdp_eval.mjs — One-Shot Expression Evaluator
+
+`cdp_eval.mjs` connects to a single CDP page target and evaluates one JS
+expression in the renderer, printing the JSON result. It complements
+`configurator_cdp_test.py` (which verifies the CDP *connection* is healthy) by
+being the quick way to *drive* arbitrary JS in the running Configurator. It is
+zero-dependency (uses Node's built-in `WebSocket`, Node 22+).
+
+### Usage
+
+```bash
+node cdp_eval.mjs <webSocketDebuggerUrl> <expression | ->
+# Pass `-` as the expression to read it from stdin.
+```
+
+Get the target URL first:
+
+```bash
+curl -s http://localhost:9222/json/list | jq -r '.[0].webSocketDebuggerUrl'
+```
+
+### Examples
+
+```bash
+WS_URL=$(curl -s http://localhost:9222/json/list | jq -r '.[0].webSocketDebuggerUrl')
+
+# Inspect renderer state
+node cdp_eval.mjs "$WS_URL" "document.title"
+
+# Read a longer expression from stdin
+echo "import('/js/msp.js').then(m => m.MSP.promise(1,1))" | node cdp_eval.mjs "$WS_URL" -
+```
+
+The expression is evaluated with `awaitPromise: true`, `returnByValue: true`,
+and `userGesture: true`, so async results are awaited and resolved to plain
+JSON. Exit codes: `0` success, `1` CDP error / renderer exception / 20s
+timeout, `2` usage error.
+
+### When to Use
+
+Use `cdp_eval.mjs` when you need a one-shot `Runtime.evaluate` in a live
+Configurator — state inspection, poisoning globals, or observing async promise
+settlement (e.g. reproducing the `MSP.promise()` hang: poison
+`MSP.parseFailures` and watch the promise never settle vs reject after a fix).
+
+For driving the full UI (clicking tabs, screenshots, DOM queries), use
+`tab_sweep_cdp.py` or the Chrome DevTools MCP instead.
 
 ## Expected Output
 
@@ -131,6 +184,21 @@ cd inav-configurator && npm start
 3. Claude session was started with configurator running
 4. Agent vs interactive session (MCP may not load in agents)
 
+### Stale TCP Connection After Page Reload (testing against live SITL)
+
+**Problem:** After editing configurator source mid-session and reloading the
+renderer (`navigate_page reload` or similar) while already connected to a live
+SITL/FC over TCP, reconnect attempts silently time out (0 bytes received).
+
+**Cause:** A renderer-only reload doesn't close the Electron main process's TCP
+socket (owned by `js/main/tcp.js`/IPC, not the renderer). The stale socket stays
+pinned as SITL's "primary" client while a second, doomed connection sits in
+FIN-WAIT-2/CLOSE-WAIT.
+
+**Solution:** Click Disconnect in the UI before reloading, or do a full Electron
+process restart (not a bare page reload) whenever testing source changes against
+a live SITL/FC connection.
+
 ## Integration with MCP
 
 This script verifies the same functionality used by MCP Chrome DevTools tools:
@@ -150,14 +218,14 @@ If this script passes, the CDP layer is working. MCP provides a higher-level abs
 ```bash
 cd inav-configurator && npm start
 # Wait 3 seconds
-python3 claude/developer/scripts/testing/configurator_cdp_test.py
+python3 claude/developer/scripts/testing/configurator/configurator_cdp_test.py
 ```
 
 **After configurator changes:** Ensure CDP still works
 ```bash
 # After modifying main.js or startup code
 npm start
-python3 claude/developer/scripts/testing/configurator_cdp_test.py
+python3 claude/developer/scripts/testing/configurator/configurator_cdp_test.py
 ```
 
 **CI/CD validation:** Automated check
@@ -165,7 +233,7 @@ python3 claude/developer/scripts/testing/configurator_cdp_test.py
 # In GitHub Actions or local automation
 npm start &
 sleep 5
-python3 claude/developer/scripts/testing/configurator_cdp_test.py
+python3 claude/developer/scripts/testing/configurator/configurator_cdp_test.py
 ```
 
 ## Related Documentation

@@ -1,5 +1,7 @@
 # ⚠️ CRITICAL CHECKLIST - Read Before Git Commit
 
+> **Workflow:** step 10 of 17 → `WORKFLOW.md`.
+
 **Complete this checklist before running `git commit`:**
 
 **Use a task list tool to track each step as you complete it.**
@@ -35,6 +37,7 @@ GIT_EDITOR="gedit" git commit --edit -m "Your commit message"
 - Be specific: "Fix blackbox corruption when no motors defined in mixer"
 - Keep it concise (1-2 sentences)
 - Follow repository's existing commit style (check `git log`)
+- When a change spans repos, reference the matching PR on the other repo in the commit message (subject or body), repo-qualified (`iNavFlight/inav#1234`) or by full URL — not a bare `#N`
 
 ### 4. Use HEREDOC for Multi-line Messages
 
@@ -119,18 +122,12 @@ Pushing directly to `upstream` bypasses code review and branch protection. The o
 
 ---
 
-## Self-Improvement: Lessons Learned
+## Self-Improvement: Lessons
 
-When you discover something important about GIT COMMIT PRACTICES that will likely help in future sessions, add it to this section. Only add insights that are:
-- **Reusable** - will apply to future commit operations, not one-off situations
-- **About git/commits** - commit messages, staging, hooks, amending, linting
-- **Concise** - one line per lesson
+Add concise, actionable one-liners (see `guides/README.md` Capture Rubric). State the
+rule, not the story.
 
-Use the Edit tool to append new entries. Format: `- **Brief title**: One-sentence insight`
-
-### Lessons
-
-- **Don't route around permission/auth restrictions on your own initiative**: Narrow GitHub token scopes, force-push blocks, etc. are deliberate guardrails, not bugs — agents have previously force-pushed to public branches after amending commits, destroying other people's work. If an operation fails due to a permission restriction, report the failure; only switch to a broader-scoped credential or bypass it if the user explicitly authorizes that specific case.
-- **Avoid the literal substrings `maintenance`/`master`/`main` in feature branch names**: the "Block git push to maintenance/master in sub-repos" hook matches those strings anywhere in the push command's text, not just as the actual target branch — a feature branch like `fix-x-maintenance-10x` (naming the base branch it targets, a natural convention) gets blocked as if it were pushing to `maintenance-10.x` itself. Rename the branch (e.g. `fix-x-10x`) rather than trying to bypass the hook; this is a false positive in the hook's substring match, not a real safety concern for a push to your own fork.
+- **Permission denials are guardrails, not bugs**: report the failure; only broaden a credential or bypass if the user authorizes that specific case.
+- **Don't rewrite pushed history on a PR branch**: add a normal follow-up commit instead of amending/force-pushing.
 
 <!-- Add new lessons above this line -->

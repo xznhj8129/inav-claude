@@ -115,12 +115,27 @@ operation — everything else follows the recognize-and-ask steps above.
 
 ## Repository Structure
 
-The INAV project consists of **three standalone repositories**:
+The INAV project consists of **four standalone repositories**:
 - `inav/` - Flight controller firmware (C/C99)
 - `inav-configurator/` - Desktop GUI (JavaScript/Electron)
-- `inavwiki/` - Documentation (Markdown)
+- `inavwiki/` - Documentation wiki (Markdown)
+- `iNavFlight.github.io/` - Docusaurus documentation site (primary end-user docs)
 
 Each repository has its own git history and must be managed independently.
+
+### Docs Site Versioning (`iNavFlight.github.io/`)
+
+The docs site (Docusaurus) versions its content by release. Discoverable
+pointers so future projects don't rediscover it:
+
+- **Current (unreleased) docs** → `iNavFlight.github.io/docs/`
+- **Per-release snapshots** → `iNavFlight.github.io/versioned_docs/version-X.Y.Z/` (one dir per released INAV version)
+- **Per-release sidebars** → `iNavFlight.github.io/versioned_sidebars/`
+- **Version list** → `iNavFlight.github.io/versions.json` (newest first)
+
+Adding a new release = snapshot `docs/` into `versioned_docs/version-X.Y.Z/` +
+`versioned_sidebars/`, then add the version to `versions.json`. See the
+`markdown2mdx-complete-pipeline` project for the conversion/versioning tooling.
 
 ## Creating Branches
 
@@ -137,8 +152,8 @@ may include unrelated commits, WIP changes, or simply the wrong base, contaminat
 ### Use the script (preferred)
 
 ```bash
-claude/developer/scripts/git/new-branch.sh <repo> <bugfix|feature|breaking> <branch-name> [--dry-run]
-# repo: inav | inav-configurator | PrivacyLRS
+claude/developer/scripts/git/new-branch.sh <repo> <bugfix|bugfix-10.0|feature|breaking> <branch-name> [--dry-run]
+# repo: inav | inav2 | inav3 | inav-configurator | inav-configurator2 | PrivacyLRS
 ```
 
 It looks up the base branch below, refuses to run on a dirty tree, fetches the correct
@@ -150,13 +165,31 @@ remote, prints its reasoning, and creates the branch. Use `--dry-run` to preview
 |------|--------|-------------|-------------|-------|
 | PrivacyLRS | `origin` | any | `secure_01` | Separate fork/derivative project |
 | inav | `upstream` | bugfix | `release/9.1` | **TEMPORARY OVERRIDE** — `maintenance-9.x` is damaged. REVIEW-BY 2027-02: verify repair before reverting to `maintenance-9.x` |
-| inav | `upstream` | feature | `maintenance-10.x` | Same temporary override as above |
-| inav | `upstream` | breaking | `maintenance-10.x` | Matches the normal (non-override) rule |
+| inav | `upstream` | bugfix-10.0 | `maintenance-10.x` | Fix for code that exists only in 10.0 (not on the 9.x line). `maintenance-10.x` is fixes-only during the 10.0 RC freeze. Milestone `10.0` |
+| inav | `upstream` | feature | `next-10.1` | Holding branch for 10.1 work during the 10.0 RC freeze; `maintenance-10.x` is fixes-only until 10.0 ships. A workflow forward-merges `maintenance-10.x` → `next-10.1` → `maintenance-11.x`. Milestone `10.1`. Revisit after 10.0 release |
+| inav | `upstream` | breaking | `maintenance-11.x` | `maintenance-11.x` created 2026-09-20 for the 10.0-RC1 cycle — see `claude/release-manager/guides/05-major-version-bump.md` |
 | inav-configurator | `upstream` | bugfix | `maintenance-9.x` | **NOT** affected by the inav override — configurator's `maintenance-9.x` is fine |
+| inav-configurator | `upstream` | bugfix-10.0 | `maintenance-10.x` | Fix for code that exists only in 10.0 (not on the 9.x line) |
 | inav-configurator | `upstream` | feature | `maintenance-9.x` | Not affected by the inav override |
-| inav-configurator | `upstream` | breaking | `maintenance-10.x` | MSP protocol / settings structure changes |
+| inav-configurator | `upstream` | breaking | `maintenance-11.x` | MSP protocol / settings structure changes — `maintenance-11.x` created 2026-09-20 for the 10.0-RC1 cycle |
+| iNavFlight.github.io | `upstream` | any | `master` | No maintenance branches — single default branch, feature-branch PRs |
 
-**NEVER target PRs to master** - it receives merges only (maintenance-9.x → master → maintenance-10.x).
+**NEVER target PRs to master** - it receives merges only (maintenance-9.x → master → maintenance-10.x). This does not apply to `iNavFlight.github.io`, whose default branch *is* `master`.
+
+### Exception: CI/workflow-only changes must base from the OLDEST active branch
+
+The table above picks a base branch by *change type* (bugfix/feature/breaking) — that's for
+code that lands in one release. A change to `.github/workflows/*.yml` (or other repo-wide CI
+config) is different: it needs to reach **every** active branch, including `master`, and the
+only way files travel to `master` is by being merged there from an older branch in the normal
+forward-merge chain (`maintenance-9.x` → `master` → `maintenance-10.x` → ...).
+
+So: branch CI/workflow-only changes from the **oldest actively-maintained branch** for that
+repo (currently `release/9.1` for inav, `maintenance-9.x` for inav-configurator — check the
+table above for the current oldest row), not from the newest maintenance branch. A workflow
+PR based on `maintenance-11.x` will never reach `master` or any branch older than it; one
+based on the oldest branch flows forward through every branch as each does its routine
+forward-merge.
 
 ### Manual fallback (only if the script can't be used)
 
@@ -358,13 +391,13 @@ git log --oneline --graph --all --decorate -10
 
 ## Working with Multiple Repositories
 
-Since `inav/`, `inav-configurator/`, and `inavwiki/` are standalone repos:
+Since `inav/`, `inav-configurator/`, `inavwiki/`, and `iNavFlight.github.io/` are standalone repos:
 
 ### Check Status Across All Repos
 
 ```bash
 # From project root
-for repo in inav inav-configurator inavwiki; do
+for repo in inav inav-configurator inavwiki iNavFlight.github.io; do
   if [ -d "$repo" ]; then
     echo "=== $repo ==="
     cd $repo
@@ -378,13 +411,14 @@ done
 ### Create Matching Branches
 
 If working on a feature that spans multiple repos, create each from its own correct
-base — see the decision table above (inavwiki has no base-branch table; branch it from
-its default branch):
+base — see the decision table above (inavwiki and `iNavFlight.github.io/` have no
+maintenance branches; branch them from their default branch):
 
 ```bash
 claude/developer/scripts/git/new-branch.sh inav <bugfix|feature|breaking> my-feature
 claude/developer/scripts/git/new-branch.sh inav-configurator <bugfix|feature|breaking> my-feature
 cd inavwiki && git checkout -b my-feature && git push -u origin my-feature
+cd iNavFlight.github.io && git checkout -b my-feature && git push -u origin my-feature
 ```
 
 ### Updating the Harness Repo Itself

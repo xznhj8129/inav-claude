@@ -1,5 +1,7 @@
 # ⚠️ CRITICAL CHECKLIST - Read Before Resolving Merge Conflicts
 
+> **Workflow:** ad hoc (merge conflicts) — see `WORKFLOW.md`.
+
 ## ⛔ FIRST: Check merge direction — and never use GitHub's web conflict resolver
 
 **NEVER merge a higher version branch into a lower one.** Version branches are release snapshots in time:
@@ -270,10 +272,16 @@ done
 
 ---
 
-## Self-Improvement: Lessons Learned
+## Lessons
 
-- **A forked agent's completion report can be truncated mid-merge, not a full summary**: for a large multi-file merge (e.g. 34 conflicted files) handed off to a fork, the task-notification's `result` text is whatever the fork happened to be saying when its turn budget ran out — it can look like a normal in-progress remark ("Same pattern seen before...") with no indication the job stopped short. On PR #2448's conflict resolution, a fork resolved 28 of 34 files and never committed, but the notification gave no sign anything was incomplete. Always verify directly after any "completed" fork on a merge: `git status` for remaining `UU` files, `grep -rn '^<<<<<<<\|^=======\|^>>>>>>>'` across the tree, and `git log` for the expected commit — don't treat the notification text as proof the merge commit exists.
-- **A code review of the conflict-resolution diff catches leftover half-converted call sites the resolution itself misses**: mechanical renames/API-swaps (e.g. `store.get/set` → `bridge.storeGet/storeSet`) are easy to apply file-by-file but easy to miss a call site in a large file — a full build only catches a *missing import*, not an *undefined global* left behind when the import was correctly removed but a few call sites weren't updated. Run `inav-code-review` against the resolution diff specifically (not just a build+syntax check) before treating a large conflict resolution as done; expect at least one more round of "still-leftover" fixes after the first review.
+Concise, actionable one-liners not already captured in the checklist below:
+
+- **When two sibling PRs fix the same defect class, the surviving *comments* are the risk**: verify every surviving and dropped comment against the merged state — a comment true when written may now assert a fixed output is broken.
+- **A merge can silently inherit a hazard the other branch introduced**: diff the hazard set (e.g. DMA assignments) before/after merging a branch that touched the same subsystem, and document what's newly introduced.
+- **Pushing a resolved conflict to a contributor's fork needs a remote and permission**: check `maintainer_can_modify` first; if true, add their fork as a remote and push there — if false, comment the fix on the PR instead.
+- **A bot flag on a dependent PR's diff can live in the PR it depends on**: `git log --oneline -1 -- <file>` shows which PR's commit introduced the flagged lines; fix it on that PR's branch.
+- **A tracked file can show as dirty on a clean checkout of a version branch** if its committed blob's line endings don't match what `.gitattributes` normalization would produce today (e.g. a `text`-attributed file whose blob still has raw CRLF). `git checkout --`/`git stash` on that path won't clear it — the smudge/clean filters just reproduce the same "diff." If content is otherwise identical, it's safe to `git reset --hard` past it (verify with `git diff` first); don't let it block a `--ff-only` update or get treated as someone's uncommitted work.
+- **An add/add conflict often means the same feature was independently added to both branches, then only one side got follow-on fixes** — compare `git log --oneline <branch> -- <file>` on both sides; if one branch's fix commits are a strict superset, take that branch's whole file rather than hand-splicing.
 
 ## Checklist
 
@@ -285,3 +293,9 @@ Before marking a merge complete:
 - [ ] All function calls resolve to actual definitions (no "is not a function" errors)
 - [ ] App loads and all tabs render without console errors
 - [ ] Connected FC: key new PR features tested manually
+- [ ] For any whole-file conflict resolved as "just drift", `git grep` the PR's changed symbol/function on the base branch to check whether it moved elsewhere rather than merely changing
+- [ ] Ran `inav-code-review` against the resolution diff itself — a clean build only catches a missing import, not a leftover half-converted call site
+- [ ] Pushed and watched full CI (all targets, not just a local build) — especially if the branch's last green run predates a large chunk of base-branch history
+- [ ] If a conflict changed what counts as "empty"/"disconnected"/"unset" for a value, grepped the test suite for that field and re-checked any fixture using the old sentinel
+- [ ] If gating new code behind an `MCU_RAM_SIZE`-style macro, checked `src/test/unit/CMakeLists.txt` for a matching macro definition the unit test needs
+- [ ] If part of this merge was delegated to a fork/subagent, verified directly (`git status`, grep for conflict markers, `git log`) rather than trusting the completion notification text

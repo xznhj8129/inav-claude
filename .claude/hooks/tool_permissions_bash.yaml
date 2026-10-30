@@ -141,24 +141,24 @@ bash_rules:
       fi
 
       # Check if the ORIGINAL_COMMAND contains a cd to a sub-repo
-      # Pattern: cd ... /inav, /inav2, /inav-configurator, /PrivacyLRS, /mspapi2, /inavwiki, /OpenTX-Telemetry-Widget, /blackbox-tools, or /iNavFlight.github.io
+      # Pattern: cd ... /inav, /inav2, /inav-configurator, /inav-configurator2, /PrivacyLRS, /mspapi2, /inavwiki, /OpenTX-Telemetry-Widget, /blackbox-tools, or /iNavFlight.github.io
       # This handles cases like: cd /home/.../inav && git branch -b feature
       ORIGINAL_CMD="{ORIGINAL_COMMAND}"
-      if [ -n "$ORIGINAL_CMD" ] && echo "$ORIGINAL_CMD" | grep -qE "cd\\s+[^&|;]*/(inav3|inav2|inav|inav-configurator|PrivacyLRS|mspapi2|inavwiki|OpenTX-Telemetry-Widget|blackbox-tools|iNavFlight\\.github\\.io)(/|$|\\s+)"; then
+      if [ -n "$ORIGINAL_CMD" ] && echo "$ORIGINAL_CMD" | grep -qE "cd\\s+[^&|;]*/(inav3|inav2|inav|inav-configurator2|inav-configurator|PrivacyLRS|mspapi2|inavwiki|OpenTX-Telemetry-Widget|blackbox-tools|iNavFlight\\.github\\.io)(/|$|\\s+)"; then
         # The original command contains a cd into a sub-repo, allow branch creation
         echo "allow"
         exit 0
       fi
 
-      # Check if we're in a sub-repo (contains /inav2/, /inav/, /inav-configurator/, /PrivacyLRS/, /mspapi2/, /inavwiki/, /OpenTX-Telemetry-Widget/, /blackbox-tools/, or /iNavFlight.github.io/)
-      if echo "$ABS_CWD" | grep -qE "/(inav3|inav2|inav|inav-configurator|PrivacyLRS|mspapi2|inavwiki|OpenTX-Telemetry-Widget|blackbox-tools|iNavFlight\\.github\\.io)(/|$)"; then
+      # Check if we're in a sub-repo (contains /inav2/, /inav/, /inav-configurator/, /inav-configurator2/, /PrivacyLRS/, /mspapi2/, /inavwiki/, /OpenTX-Telemetry-Widget/, /blackbox-tools/, or /iNavFlight.github.io/)
+      if echo "$ABS_CWD" | grep -qE "/(inav3|inav2|inav|inav-configurator2|inav-configurator|PrivacyLRS|mspapi2|inavwiki|OpenTX-Telemetry-Widget|blackbox-tools|iNavFlight\\.github\\.io)(/|$)"; then
         # We're in a sub-repo, allow branch creation here
         echo "allow"
       else
         # We're in root inavflight/ repo, deny branch creation
         echo "deny"
       fi
-    message: "Branch creation blocked in root inavflight/ repo. Branches should be created in the appropriate project repo instead: inav/, inav2/, inav3/, inav-configurator/, PrivacyLRS/, mspapi2/, inavwiki/, OpenTX-Telemetry-Widget/, blackbox-tools/, or iNavFlight.github.io/."
+    message: "Branch creation blocked in root inavflight/ repo. Branches should be created in the appropriate project repo instead: inav/, inav2/, inav3/, inav-configurator/, inav-configurator2/, PrivacyLRS/, mspapi2/, inavwiki/, OpenTX-Telemetry-Widget/, blackbox-tools/, or iNavFlight.github.io/."
 
   - name: "Block git commit with Claude mentions"
     command_pattern: "^git$"
@@ -249,12 +249,28 @@ bash_rules:
     decision: ask
     message: "find with -exec requires approval"
 
-  - name: "Allow echo to skip-scorecard file"
+  - name: "Allow echo to triage skip file"
     command_pattern: "^echo$"
-    argument_pattern: ".*(>>|>)\\s*/tmp/claude/skip-scorecard-inav\\.txt.*"
+    argument_pattern: ".*(>>|>)\\s*claude/local-data/triage/skip-(inav|configurator)\\.txt.*"
     category: write
     decision: allow
-    message: "echo to skip-scorecard file allowed for PR triage workflow"
+    message: "echo to triage skip file allowed for PR disposition workflow"
+
+  # Hint rules: these only change the message shown with an ask, never the decision.
+  # Placed after the triage allow above and before the generic echo ask below.
+  - name: "Ask for echo redirection into claude/projects/ (hint: use Edit/Write)"
+    command_pattern: "^echo$"
+    argument_pattern: ">>?\\s*[\"']?(~/inavflight/|/home/raymorris/Documents/planes/inavflight/|(\\.\\./|\\./)*)claude/projects/"
+    category: write
+    decision: ask
+    message: "Use the Edit or Write tool for files under claude/projects/ (nested project repos; already allowed via settings.json Edit(claude/**)); avoid shell redirection."
+
+  - name: "Ask for echo redirection into claude/ (hint: use Edit/Write)"
+    command_pattern: "^echo$"
+    argument_pattern: ">>?\\s*[\"']?(~/inavflight/|/home/raymorris/Documents/planes/inavflight/|(\\.\\./|\\./)*)claude/"
+    category: write
+    decision: ask
+    message: "Use the Edit or Write tool for files under claude/ (those are already allowed: settings.json Edit(claude/**)); avoid shell redirection."
 
   - name: "Ask for echo with file redirection, allow otherwise"
     command_pattern: "^echo$"
@@ -278,6 +294,29 @@ bash_rules:
     argument_pattern: "^>\\s+.*(claude/|locks/.*\\.lock).*"
     category: write
     decision: allow
+
+  - name: "Allow cat > to ./tmp directory (shared temp storage only)"
+    command_pattern: "^cat$"
+    argument_pattern: "^>\\s+((\\.\\./|\\./)?tmp/|/home/raymorris/Documents/planes/inavflight/tmp/)\\S+.*"
+    category: write
+    decision: allow
+    message: "cat write redirection to ./tmp directory only (shared inter-session storage, not system /tmp or arbitrary paths)"
+
+  # Hint rules (ask only, never allow): reached only when the cat > claude/ allow above did not match,
+  # i.e. append (>>), no-space, or "cat file > claude/..." forms. Heredoc bodies are stripped before matching.
+  - name: "Ask for cat redirection into claude/projects/ (hint: use Edit/Write)"
+    command_pattern: "^cat$"
+    argument_pattern: ">>?\\s*[\"']?(~/inavflight/|/home/raymorris/Documents/planes/inavflight/|(\\.\\./|\\./)*)claude/projects/"
+    category: write
+    decision: ask
+    message: "Use the Edit or Write tool for files under claude/projects/ (nested project repos; already allowed via settings.json Edit(claude/**)); avoid shell redirection."
+
+  - name: "Ask for cat redirection into claude/ (hint: use Edit/Write)"
+    command_pattern: "^cat$"
+    argument_pattern: ">>?\\s*[\"']?(~/inavflight/|/home/raymorris/Documents/planes/inavflight/|(\\.\\./|\\./)*)claude/"
+    category: write
+    decision: ask
+    message: "Use the Edit or Write tool for files under claude/ (those are already allowed: settings.json Edit(claude/**)); avoid shell redirection."
 
   - name: "Ask for cat > to other locations"
     command_pattern: "^cat$"
@@ -324,6 +363,48 @@ bash_rules:
     category: write
     decision: ask
     message: "Recursive file operations require manual approval"
+
+  # ===================================================================
+  # Hardware Flashing Operations (DFU/USB Firmware Updates)
+  # ===================================================================
+  # These commands are used by fc-flasher agent to flash INAV firmware to flight controllers.
+  # They require USB/serial access which is blocked by sandbox, hence dangerouslyDisableSandbox=true.
+  # Pre-approving these commands prevents hook approval context injection during subagent execution.
+
+  - name: "Allow dfu-util list (verify DFU devices)"
+    command_pattern: "^dfu-util$"
+    argument_pattern: "^-l.*"
+    category: read
+    decision: allow
+    message: "DFU device listing - verify flight controller is in DFU bootloader mode"
+
+  - name: "Allow listing serial ports for flight controller detection"
+    command_pattern: "^ls$"
+    argument_pattern: "^/dev/tty(ACM|USB)\\*.*"
+    category: read
+    decision: allow
+    message: "Serial port listing - detect flight controller connection"
+
+  - name: "Allow Node.js DFU flasher script (primary flashing method)"
+    command_pattern: "^node$"
+    argument_pattern: "^(~/inavflight/|\\.\\./|/home/[^/\\s]+/Documents/planes/inavflight/)?claude/developer/scripts/build/flash-dfu-node\\.js\\s+[\\w./~-]+\\.hex$"
+    category: other
+    decision: allow
+    message: "Flash firmware to flight controller via DFU using Node.js flasher (preserves settings)"
+
+  - name: "Allow Python DFU preserve-settings flasher script (fallback method)"
+    command_pattern: "^python3$"
+    argument_pattern: "^(~/inavflight/|\\.\\./|/home/[^/\\s]+/Documents/planes/inavflight/)?claude/developer/scripts/build/flash-dfu-preserve-settings\\.py\\s+[\\w./~-]+\\.hex(\\s+\\w+)?$"
+    category: other
+    decision: allow
+    message: "Flash firmware to flight controller via DFU using Python flasher (preserves settings)"
+
+  - name: "Allow MSP reboot-to-DFU script"
+    command_pattern: "^python3$"
+    argument_pattern: "^(~/inavflight/|\\.\\./|/home/[^/\\s]+/Documents/planes/inavflight/)?\\.claude/skills/flash-firmware-dfu/reboot-to-dfu\\.py\\s+/dev/tty(ACM|USB)\\d+$"
+    category: other
+    decision: allow
+    message: "Send MSP reboot command to flight controller to enter DFU bootloader mode"
 
   # ===================================================================
   # Build Tools & Compilers
@@ -479,9 +560,78 @@ bash_rules:
     message: "CommonJS test file operations (chmod +x, node execution)"
 
   # ===================================================================
+  # GUI Testing & Screenshot Session Scripts
+  # ===================================================================
+
+  - name: "Allow timeout wrapper for configurator dialog testing"
+    command_pattern: "^timeout$"
+    argument_pattern: "^\\d+\\s+python3\\s+claude/developer/scripts/testing/configurator/test_dialogs_jbox_consolidation\\.py(\\s+[A-Za-z0-9_=./:~-]+)*$"
+    category: other
+    decision: allow
+    message: "Configurator dialog/jBox testing script with timeout wrapper (screenshot/GUI automation)"
+
+  - name: "Allow ImageMagick import for screenshot automation to tmp"
+    command_pattern: "^import$"
+    argument_pattern: "^-window\\s+root\\s+(/tmp/|\\./tmp/|/home/[^/\\s]+/Documents/planes/inavflight/tmp/)[A-Za-z0-9_.-]+\\.png(\\s+2>&1)?$"
+    category: write
+    decision: allow
+    message: "ImageMagick screenshot capture to temporary directory (screenshot/GUI automation)"
+
+  # ===================================================================
+  # PDF / Tool-Presence / KiCad Read-Only Lookups (narrow, added 2026-10-25)
+  # ===================================================================
+
+  - name: "Allow which for tool-presence lookup (read-only)"
+    command_pattern: "^which$"
+    argument_pattern: "^-?[A-Za-z0-9_.+-]+(\\s+[A-Za-z0-9_.+-]+)*$"
+    category: read
+    decision: allow
+    message: "which - read-only check whether a command is installed (e.g. which ngspice)"
+
+  - name: "Allow pdfinfo (read-only PDF metadata)"
+    command_pattern: "^pdfinfo$"
+    category: read
+    decision: allow
+    message: "pdfinfo - read-only PDF metadata"
+
+  - name: "Allow pdftoppm to render PDF pages to PNG in scratch tmp/ directories only"
+    command_pattern: "^pdftoppm$"
+    # Known flags with numeric values only; output prefix must be an absolute path under the repo tmp/;
+    # no "..", no shell metacharacters. (No precondition script: interpolating the command into shell was unsafe.)
+    argument_pattern: "^(?!.*\\.\\.)((-r|-f|-l|-scale-to|-x|-y|-W|-H)\\s+[0-9]+\\s+|-(png|singlefile|gray)\\s+)*[A-Za-z0-9_./-]+\\.pdf\\s+/home/raymorris/Documents/planes/inavflight/tmp/[A-Za-z0-9_/-]+$"
+    category: write
+    decision: allow
+    message: "pdftoppm PDF-to-PNG render into scratch tmp/ directory"
+
+  - name: "Allow mkdir -p of a single scratch directory under repo tmp/"
+    command_pattern: "^mkdir$"
+    # Single -p path, absolute, under the repo tmp/ only. No "." at all (blocks ".." traversal), no spaces or shell metacharacters.
+    argument_pattern: "^-p\\s+/home/raymorris/Documents/planes/inavflight/tmp/[A-Za-z0-9_/-]+$"
+    category: write
+    decision: allow
+    message: "mkdir -p in scratch tmp/ directory"
+
+  - name: "Allow KiCad 10 kicad-cli read/report subcommands (DRC, ERC, render, SVG/netlist export)"
+    command_pattern: "^(~|/home/raymorris)/Documents/electronics/kicad-10\\.0\\.6-x86_64\\.AppImage$"
+    # Only report/export subcommands. Any -o/--output must point into tmp/ (no writes into
+    # libraries or elsewhere). --save* flags (which write the board) are excluded. No fp/pcb upgrade.
+    # Strict charset (no shell metacharacters), no "..", no attached -o/--output forms, output only under the absolute repo tmp/.
+    argument_pattern: "^(?!.*\\.\\.)(?!.*--save)(?!.*\\s-o[^\\s])(?!.*--output[^\\s=])(?!.*\\s(-o|--output)(\\s+|=)(?!/home/raymorris/Documents/planes/inavflight/tmp/)\\S)kicad-cli\\s+(pcb\\s+(drc|render|export\\s+svg)|sch\\s+(erc|export\\s+netlist))(\\s+[A-Za-z0-9_./=-]+)*$"
+    category: read
+    decision: allow
+    message: "KiCad 10 kicad-cli read/report command (DRC, ERC, render, SVG/netlist export to tmp/)"
+
+  # ===================================================================
   # Common Read-Only Commands (Broad Allow List)
   # ===================================================================
   # These are safe commands that only read/display data
+
+  - name: "Allow tr to convert newlines to spaces in pipes"
+    command_pattern: "^tr$"
+    argument_pattern: ".*\\\\n.*\\s+.*"
+    category: read
+    decision: allow
+    message: "tr command for converting newlines to spaces in pipe operations (read-only)"
 
   - name: "Allow pgrep command"
     command_pattern: "^pgrep$"
