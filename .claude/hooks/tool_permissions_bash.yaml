@@ -19,7 +19,7 @@ bash_rules:
     precondition_script: |
       # Verify that the parent directory (claude/projects/active) exists
       # This prevents creating projects in the wrong location
-      if [ -d "claude/projects/active" ] || [ -d "/home/raymorris/Documents/planes/inavflight/claude/projects/active" ]; then
+      if [ -d "claude/projects/active" ] || [ -d "/media/anon/WD2TB/DataVault/TechProjects/Software/GitRepos/inav-claude/claude/projects/active" ]; then
         echo "allow"
       else
         echo "deny"
@@ -260,14 +260,14 @@ bash_rules:
   # Placed after the triage allow above and before the generic echo ask below.
   - name: "Ask for echo redirection into claude/projects/ (hint: use Edit/Write)"
     command_pattern: "^echo$"
-    argument_pattern: ">>?\\s*[\"']?(~/inavflight/|/home/raymorris/Documents/planes/inavflight/|(\\.\\./|\\./)*)claude/projects/"
+    argument_pattern: ">>?\\s*[\"']?(~/inavflight/|/media/anon/WD2TB/DataVault/TechProjects/Software/GitRepos/inav-claude/|(\\.\\./|\\./)*)claude/projects/"
     category: write
     decision: ask
     message: "Use the Edit or Write tool for files under claude/projects/ (nested project repos; already allowed via settings.json Edit(claude/**)); avoid shell redirection."
 
   - name: "Ask for echo redirection into claude/ (hint: use Edit/Write)"
     command_pattern: "^echo$"
-    argument_pattern: ">>?\\s*[\"']?(~/inavflight/|/home/raymorris/Documents/planes/inavflight/|(\\.\\./|\\./)*)claude/"
+    argument_pattern: ">>?\\s*[\"']?(~/inavflight/|/media/anon/WD2TB/DataVault/TechProjects/Software/GitRepos/inav-claude/|(\\.\\./|\\./)*)claude/"
     category: write
     decision: ask
     message: "Use the Edit or Write tool for files under claude/ (those are already allowed: settings.json Edit(claude/**)); avoid shell redirection."
@@ -297,7 +297,7 @@ bash_rules:
 
   - name: "Allow cat > to ./tmp directory (shared temp storage only)"
     command_pattern: "^cat$"
-    argument_pattern: "^>\\s+((\\.\\./|\\./)?tmp/|/home/raymorris/Documents/planes/inavflight/tmp/)\\S+.*"
+    argument_pattern: "^>\\s+((\\.\\./|\\./)?tmp/|/media/anon/WD2TB/DataVault/TechProjects/Software/GitRepos/inav-claude/tmp/)\\S+.*"
     category: write
     decision: allow
     message: "cat write redirection to ./tmp directory only (shared inter-session storage, not system /tmp or arbitrary paths)"
@@ -306,14 +306,14 @@ bash_rules:
   # i.e. append (>>), no-space, or "cat file > claude/..." forms. Heredoc bodies are stripped before matching.
   - name: "Ask for cat redirection into claude/projects/ (hint: use Edit/Write)"
     command_pattern: "^cat$"
-    argument_pattern: ">>?\\s*[\"']?(~/inavflight/|/home/raymorris/Documents/planes/inavflight/|(\\.\\./|\\./)*)claude/projects/"
+    argument_pattern: ">>?\\s*[\"']?(~/inavflight/|/media/anon/WD2TB/DataVault/TechProjects/Software/GitRepos/inav-claude/|(\\.\\./|\\./)*)claude/projects/"
     category: write
     decision: ask
     message: "Use the Edit or Write tool for files under claude/projects/ (nested project repos; already allowed via settings.json Edit(claude/**)); avoid shell redirection."
 
   - name: "Ask for cat redirection into claude/ (hint: use Edit/Write)"
     command_pattern: "^cat$"
-    argument_pattern: ">>?\\s*[\"']?(~/inavflight/|/home/raymorris/Documents/planes/inavflight/|(\\.\\./|\\./)*)claude/"
+    argument_pattern: ">>?\\s*[\"']?(~/inavflight/|/media/anon/WD2TB/DataVault/TechProjects/Software/GitRepos/inav-claude/|(\\.\\./|\\./)*)claude/"
     category: write
     decision: ask
     message: "Use the Edit or Write tool for files under claude/ (those are already allowed: settings.json Edit(claude/**)); avoid shell redirection."
@@ -387,21 +387,21 @@ bash_rules:
 
   - name: "Allow Node.js DFU flasher script (primary flashing method)"
     command_pattern: "^node$"
-    argument_pattern: "^(~/inavflight/|\\.\\./|/home/[^/\\s]+/Documents/planes/inavflight/)?claude/developer/scripts/build/flash-dfu-node\\.js\\s+[\\w./~-]+\\.hex$"
+    argument_pattern: "^(~/inavflight/|\\.\\./|/media/anon/WD2TB/DataVault/TechProjects/Software/GitRepos/inav-claude/)?claude/developer/scripts/build/flash-dfu-node\\.js\\s+[\\w./~-]+\\.hex$"
     category: other
     decision: allow
     message: "Flash firmware to flight controller via DFU using Node.js flasher (preserves settings)"
 
   - name: "Allow Python DFU preserve-settings flasher script (fallback method)"
     command_pattern: "^python3$"
-    argument_pattern: "^(~/inavflight/|\\.\\./|/home/[^/\\s]+/Documents/planes/inavflight/)?claude/developer/scripts/build/flash-dfu-preserve-settings\\.py\\s+[\\w./~-]+\\.hex(\\s+\\w+)?$"
+    argument_pattern: "^(~/inavflight/|\\.\\./|/media/anon/WD2TB/DataVault/TechProjects/Software/GitRepos/inav-claude/)?claude/developer/scripts/build/flash-dfu-preserve-settings\\.py\\s+[\\w./~-]+\\.hex(\\s+\\w+)?$"
     category: other
     decision: allow
     message: "Flash firmware to flight controller via DFU using Python flasher (preserves settings)"
 
   - name: "Allow MSP reboot-to-DFU script"
     command_pattern: "^python3$"
-    argument_pattern: "^(~/inavflight/|\\.\\./|/home/[^/\\s]+/Documents/planes/inavflight/)?\\.claude/skills/flash-firmware-dfu/reboot-to-dfu\\.py\\s+/dev/tty(ACM|USB)\\d+$"
+    argument_pattern: "^(~/inavflight/|\\.\\./|/media/anon/WD2TB/DataVault/TechProjects/Software/GitRepos/inav-claude/)?\\.claude/skills/flash-firmware-dfu/reboot-to-dfu\\.py\\s+/dev/tty(ACM|USB)\\d+$"
     category: other
     decision: allow
     message: "Send MSP reboot command to flight controller to enter DFU bootloader mode"
@@ -503,7 +503,7 @@ bash_rules:
     message: "PR triage and parameter analysis scripts (includes PR scoring, fetching, and analysis)"
 
   - name: "Allow reboot-to-dfu skill script"
-    command_pattern: "^((/home/raymorris/Documents/planes/inavflight)?/?(\\.)?/?claude/skills/flash-firmware-dfu/reboot-to-dfu\\.py)$"
+    command_pattern: "^((/media/anon/WD2TB/DataVault/TechProjects/Software/GitRepos/inav-claude)?/?(\\.)?/?claude/skills/flash-firmware-dfu/reboot-to-dfu\\.py)$"
     category: other
     decision: allow
     message: "Firmware flashing skill - reboot device to DFU mode"
@@ -572,7 +572,7 @@ bash_rules:
 
   - name: "Allow ImageMagick import for screenshot automation to tmp"
     command_pattern: "^import$"
-    argument_pattern: "^-window\\s+root\\s+(/tmp/|\\./tmp/|/home/[^/\\s]+/Documents/planes/inavflight/tmp/)[A-Za-z0-9_.-]+\\.png(\\s+2>&1)?$"
+    argument_pattern: "^-window\\s+root\\s+(/tmp/|\\./tmp/|/media/anon/WD2TB/DataVault/TechProjects/Software/GitRepos/inav-claude/tmp/)[A-Za-z0-9_.-]+\\.png(\\s+2>&1)?$"
     category: write
     decision: allow
     message: "ImageMagick screenshot capture to temporary directory (screenshot/GUI automation)"
@@ -598,7 +598,7 @@ bash_rules:
     command_pattern: "^pdftoppm$"
     # Known flags with numeric values only; output prefix must be an absolute path under the repo tmp/;
     # no "..", no shell metacharacters. (No precondition script: interpolating the command into shell was unsafe.)
-    argument_pattern: "^(?!.*\\.\\.)((-r|-f|-l|-scale-to|-x|-y|-W|-H)\\s+[0-9]+\\s+|-(png|singlefile|gray)\\s+)*[A-Za-z0-9_./-]+\\.pdf\\s+/home/raymorris/Documents/planes/inavflight/tmp/[A-Za-z0-9_/-]+$"
+    argument_pattern: "^(?!.*\\.\\.)((-r|-f|-l|-scale-to|-x|-y|-W|-H)\\s+[0-9]+\\s+|-(png|singlefile|gray)\\s+)*[A-Za-z0-9_./-]+\\.pdf\\s+/media/anon/WD2TB/DataVault/TechProjects/Software/GitRepos/inav-claude/tmp/[A-Za-z0-9_/-]+$"
     category: write
     decision: allow
     message: "pdftoppm PDF-to-PNG render into scratch tmp/ directory"
@@ -606,7 +606,7 @@ bash_rules:
   - name: "Allow mkdir -p of a single scratch directory under repo tmp/"
     command_pattern: "^mkdir$"
     # Single -p path, absolute, under the repo tmp/ only. No "." at all (blocks ".." traversal), no spaces or shell metacharacters.
-    argument_pattern: "^-p\\s+/home/raymorris/Documents/planes/inavflight/tmp/[A-Za-z0-9_/-]+$"
+    argument_pattern: "^-p\\s+/media/anon/WD2TB/DataVault/TechProjects/Software/GitRepos/inav-claude/tmp/[A-Za-z0-9_/-]+$"
     category: write
     decision: allow
     message: "mkdir -p in scratch tmp/ directory"
@@ -616,7 +616,7 @@ bash_rules:
     # Only report/export subcommands. Any -o/--output must point into tmp/ (no writes into
     # libraries or elsewhere). --save* flags (which write the board) are excluded. No fp/pcb upgrade.
     # Strict charset (no shell metacharacters), no "..", no attached -o/--output forms, output only under the absolute repo tmp/.
-    argument_pattern: "^(?!.*\\.\\.)(?!.*--save)(?!.*\\s-o[^\\s])(?!.*--output[^\\s=])(?!.*\\s(-o|--output)(\\s+|=)(?!/home/raymorris/Documents/planes/inavflight/tmp/)\\S)kicad-cli\\s+(pcb\\s+(drc|render|export\\s+svg)|sch\\s+(erc|export\\s+netlist))(\\s+[A-Za-z0-9_./=-]+)*$"
+    argument_pattern: "^(?!.*\\.\\.)(?!.*--save)(?!.*\\s-o[^\\s])(?!.*--output[^\\s=])(?!.*\\s(-o|--output)(\\s+|=)(?!/media/anon/WD2TB/DataVault/TechProjects/Software/GitRepos/inav-claude/tmp/)\\S)kicad-cli\\s+(pcb\\s+(drc|render|export\\s+svg)|sch\\s+(erc|export\\s+netlist))(\\s+[A-Za-z0-9_./=-]+)*$"
     category: read
     decision: allow
     message: "KiCad 10 kicad-cli read/report command (DRC, ERC, render, SVG/netlist export to tmp/)"
